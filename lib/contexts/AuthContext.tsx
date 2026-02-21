@@ -39,14 +39,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initAuth();
 
     // Listen for auth state changes
-    const { data: { subscription } } = onAuthStateChange((event, session) => {
+    const authListener = onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
     return () => {
-      subscription.unsubscribe();
+      authListener?.data?.subscription?.unsubscribe();
     };
   }, []);
 
