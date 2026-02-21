@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select';
 
 // Lazy load ActionPlanCard for better performance
-const ActionPlanCard = lazy(() => import('@/components/ai/ActionPlanCard').then(mod => ({ default: mod.ActionPlanCard })));
+const ActionPlanCard = lazy(() => import('@/components/ai/ActionPlanCard'));
 
 interface Client {
   client_id: string;

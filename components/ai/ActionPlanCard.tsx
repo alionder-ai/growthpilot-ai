@@ -137,3 +137,5 @@ export function ActionPlanCard({
     </Card>
   );
 }
+
+export default ActionPlanCard;
