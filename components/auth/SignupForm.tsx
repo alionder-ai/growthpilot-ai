@@ -1,26 +1,27 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import React from 'react';
+
+import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthContext } from '@/lib/contexts/AuthContext';
 import { getAuthErrorMessage } from '@/lib/supabase/auth';
 import { isValidEmail, isValidPassword } from '@/lib/utils/validation';
-import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
 
 export function SignupForm() {
   const router = useRouter();
   const { signUp } = useAuthContext();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [confirmPassword, setConfirmPassword] = React.useState('');
+  const [error, setError] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
 
@@ -50,7 +51,7 @@ export function SignupForm() {
     try {
       await signUp({ email, password });
       router.push('/dashboard');
-    } catch (err: any) {
+    } catch (err) {
       setError(getAuthErrorMessage(err));
     } finally {
       setLoading(false);
@@ -74,7 +75,7 @@ export function SignupForm() {
               type="email"
               placeholder="ornek@email.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               disabled={loading}
               required
             />
@@ -87,7 +88,7 @@ export function SignupForm() {
               type="password"
               placeholder="••••••••"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
               disabled={loading}
               required
             />
@@ -104,7 +105,7 @@ export function SignupForm() {
               type="password"
               placeholder="••••••••"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
               disabled={loading}
               required
             />

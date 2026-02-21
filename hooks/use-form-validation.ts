@@ -3,7 +3,7 @@
  * Provides real-time validation with Turkish error messages
  */
 
-import { useState, useCallback } from 'react';
+import React from 'react';
 import {
   isValidEmail,
   validateCommissionPercentage,
@@ -37,14 +37,14 @@ export function useFormValidation<T extends Record<string, any>>(
   initialValues: T,
   validationConfig: FormValidationConfig
 ) {
-  const [values, setValues] = useState<T>(initialValues);
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [values, setValues] = React.useState<T>(initialValues);
+  const [errors, setErrors] = React.useState<FormErrors>({});
+  const [touched, setTouched] = React.useState<Record<string, boolean>>({});
 
   /**
    * Validate a single field
    */
-  const validateField = useCallback(
+  const validateField = React.useCallback(
     (field: string, value: any): string | undefined => {
       const rules = validationConfig[field];
       if (!rules) return undefined;
@@ -118,7 +118,7 @@ export function useFormValidation<T extends Record<string, any>>(
   /**
    * Validate all fields
    */
-  const validateAll = useCallback((): boolean => {
+  const validateAll = React.useCallback((): boolean => {
     const newErrors: FormErrors = {};
     let isValid = true;
 
@@ -137,14 +137,14 @@ export function useFormValidation<T extends Record<string, any>>(
   /**
    * Handle field change
    */
-  const handleChange = useCallback(
+  const handleChange = React.useCallback(
     (field: string, value: any) => {
-      setValues((prev) => ({ ...prev, [field]: value }));
+      setValues((prev: T) => ({ ...prev, [field]: value }));
 
       // Validate on change if field was touched
       if (touched[field]) {
         const error = validateField(field, value);
-        setErrors((prev) => ({ ...prev, [field]: error }));
+        setErrors((prev: FormErrors) => ({ ...prev, [field]: error }));
       }
     },
     [touched, validateField]
@@ -153,13 +153,13 @@ export function useFormValidation<T extends Record<string, any>>(
   /**
    * Handle field blur
    */
-  const handleBlur = useCallback(
+  const handleBlur = React.useCallback(
     (field: string) => {
-      setTouched((prev) => ({ ...prev, [field]: true }));
+      setTouched((prev: Record<string, boolean>) => ({ ...prev, [field]: true }));
 
       // Validate on blur
       const error = validateField(field, values[field]);
-      setErrors((prev) => ({ ...prev, [field]: error }));
+      setErrors((prev: FormErrors) => ({ ...prev, [field]: error }));
     },
     [values, validateField]
   );
@@ -167,7 +167,7 @@ export function useFormValidation<T extends Record<string, any>>(
   /**
    * Reset form
    */
-  const reset = useCallback(() => {
+  const reset = React.useCallback(() => {
     setValues(initialValues);
     setErrors({});
     setTouched({});
@@ -176,14 +176,14 @@ export function useFormValidation<T extends Record<string, any>>(
   /**
    * Set form values
    */
-  const setFormValues = useCallback((newValues: Partial<T>) => {
-    setValues((prev) => ({ ...prev, ...newValues }));
+  const setFormValues = React.useCallback((newValues: Partial<T>) => {
+    setValues((prev: T) => ({ ...prev, ...newValues }));
   }, []);
 
   /**
    * Set form errors
    */
-  const setFormErrors = useCallback((newErrors: FormErrors) => {
+  const setFormErrors = React.useCallback((newErrors: FormErrors) => {
     setErrors(newErrors);
   }, []);
 

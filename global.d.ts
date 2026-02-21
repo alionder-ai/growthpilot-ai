@@ -12,23 +12,32 @@ declare module '@supabase/supabase-js' {
   export * from '@supabase/supabase-js';
 }
 
-declare module '@supabase/auth-helpers-nextjs' {
-  export function createServerClient(
+declare module '@supabase/ssr' {
+  export interface CookieOptions {
+    maxAge?: number;
+    path?: string;
+    domain?: string;
+    secure?: boolean;
+    httpOnly?: boolean;
+    sameSite?: 'lax' | 'strict' | 'none';
+  }
+
+  export function createServerClient<Database = any>(
     supabaseUrl: string,
     supabaseKey: string,
     options: {
       cookies: {
         get(name: string): string | undefined;
+        set?(name: string, value: string, options: CookieOptions): void;
+        remove?(name: string, options: CookieOptions): void;
       };
     }
   ): any;
   
-  export function createBrowserClient(
+  export function createBrowserClient<Database = any>(
     supabaseUrl: string,
     supabaseKey: string
   ): any;
-  
-  export function createMiddlewareClient(options: { req: any; res: any }): any;
 }
 
 declare module 'next/headers' {
