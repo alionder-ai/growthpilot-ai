@@ -1,0 +1,71 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/meta/sync",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/ai/cron/generate-action-plans",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/notifications/cleanup",
+      "schedule": "0 2 * * *"
+    }
+  ],
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "@supabase-url",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase-anon-key",
+    "SUPABASE_SERVICE_ROLE_KEY": "@supabase-service-role-key",
+    "META_APP_ID": "@meta-app-id",
+    "META_APP_SECRET": "@meta-app-secret",
+    "GEMINI_API_KEY": "@gemini-api-key",
+    "ENCRYPTION_KEY": "@encryption-key",
+    "SENTRY_DSN": "@sentry-dsn",
+    "SENTRY_AUTH_TOKEN": "@sentry-auth-token"
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/dashboard/overview",
+      "permanent": false,
+      "has": [
+        {
+          "type": "cookie",
+          "key": "sb-access-token"
+        }
+      ]
+    }
+  ]
+}

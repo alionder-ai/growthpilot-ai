@@ -1,0 +1,130 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
+import { getAuthErrorMessage } from '@/lib/supabase/auth';
+import { isValidEmail, isValidPassword } from '@/lib/utils/validation';
+import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
+
+export function SignupForm() {
+  const router = useRouter();
+  const { signUp } = useAuthContext();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    // Validation
+    if (!email || !password || !confirmPassword) {
+      setError('Tüm alanları doldurun');
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setError('Geçersiz e-posta formatı');
+      return;
+    }
+
+    if (!isValidPassword(password)) {
+      setError('Şifre en az 6 karakter olmalıdır');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Şifreler eşleşmiyor');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await signUp({ email, password });
+      router.push('/dashboard');
+    } catch (err: any) {
+      setError(getAuthErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle>Kayıt Ol</CardTitle>
+        <CardDescription>
+          Yeni bir GrowthPilot AI hesabı oluşturun
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">E-posta</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="ornek@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Şifre</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
+              required
+            />
+            <PasswordStrengthIndicator password={password} />
+            <p className="text-xs text-gray-500">
+              En az 6 karakter olmalıdır
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Şifre Tekrar</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              disabled={loading}
+              required
+            />
+          </div>
+
+          {error && (
+            <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
+              {error}
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading}
+          >
+            {loading ? 'Kayıt yapılıyor...' : 'Kayıt Ol'}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}

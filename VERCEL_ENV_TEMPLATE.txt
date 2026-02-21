@@ -1,0 +1,60 @@
+# ============================================================
+# VERCEL ENVIRONMENT VARIABLES - KOPYALA/YAPIŞTIR ŞABLONU
+# ============================================================
+# Bu değerleri Vercel Dashboard > Settings > Environment Variables
+# bölümüne kopyalayıp yapıştırın ve değerleri doldurun
+# ============================================================
+
+# SUPABASE
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# META ADS API
+META_APP_ID=
+META_APP_SECRET=
+META_REDIRECT_URI=
+
+# GOOGLE GEMINI API
+GEMINI_API_KEY=
+
+# SECURITY
+ENCRYPTION_KEY=
+NEXTAUTH_SECRET=
+
+# APPLICATION
+NEXT_PUBLIC_APP_URL=
+NODE_ENV=production
+
+# ============================================================
+# ENCRYPTION KEY OLUŞTURMA (Terminal'de çalıştırın)
+# ============================================================
+# macOS/Linux:
+# openssl rand -base64 32
+#
+# Veya online: https://generate-secret.vercel.app/32
+# ============================================================
+
+# ============================================================
+# VERCEL'DE ENVIRONMENT VARIABLES EKLEME ADIMLARI
+# ============================================================
+# 1. Vercel Dashboard'a gidin
+# 2. Projenizi seçin
+# 3. Settings > Environment Variables
+# 4. Her bir değişken için:
+#    - Name: Değişken adı (örn: NEXT_PUBLIC_SUPABASE_URL)
+#    - Value: Değişken değeri
+#    - Environment: Production, Preview, Development (hepsini seçin)
+# 5. "Save" butonuna tıklayın
+# 6. Tüm değişkenleri ekledikten sonra projeyi redeploy edin
+# ============================================================
+
+# ============================================================
+# ÖNEMLİ NOTLAR
+# ============================================================
+# - NEXT_PUBLIC_ ile başlayan değişkenler client-side'da görünür
+# - Diğer değişkenler sadece server-side'da kullanılır
+# - META_REDIRECT_URI değerini Vercel URL'iniz ile güncelleyin
+# - NEXT_PUBLIC_APP_URL değerini Vercel URL'iniz ile güncelleyin
+# - Encryption key'leri mutlaka güvenli bir şekilde oluşturun
+# ============================================================

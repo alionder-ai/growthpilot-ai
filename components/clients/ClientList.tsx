@@ -1,0 +1,230 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { Client } from '@/lib/types';
+import { formatDate } from '@/lib/utils/locale';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+
+interface ClientListProps {
+  onEdit: (client: Client) => void;
+  onDelete: (client: Client) => void;
+  refreshTrigger?: number;
+}
+
+interface PaginationData {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export default function ClientList({ onEdit, onDelete, refreshTrigger }: ClientListProps) {
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [industryFilter, setIndustryFilter] = useState('');
+  const [pagination, setPagination] = useState<PaginationData>({
+    page: 1,
+    limit: 50,
+    total: 0,
+    totalPages: 0
+  });
+
+  const fetchClients = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const params = new URLSearchParams({
+        page: pagination.page.toString(),
+        limit: pagination.limit.toString(),
+      });
+
+      if (searchTerm) {
+        params.append('search', searchTerm);
+      }
+
+      if (industryFilter) {
+        params.append('industry', industryFilter);
+      }
+
+      const response = await fetch(`/api/clients?${params.toString()}`);
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Müşteriler yüklenemedi');
+      }
+
+      const data = await response.json();
+      setClients(data.clients);
+      setPagination(data.pagination);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClients();
+  }, [pagination.page, refreshTrigger]);
+
+  const handleSearch = () => {
+    setPagination(prev => ({ ...prev, page: 1 }));
+    fetchClients();
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (pagination.page > 1) {
+      setPagination(prev => ({ ...prev, page: prev.page - 1 }));
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pagination.page < pagination.totalPages) {
+      setPagination(prev => ({ ...prev, page: prev.page + 1 }));
+    }
+  };
+
+  if (loading && clients.length === 0) {
+    return (
+      <Card className="p-6">
+        <div className="text-center text-muted-foreground">Yükleniyor...</div>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="p-6">
+        <div className="text-center text-red-600">{error}</div>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Search and Filter */}
+      <Card className="p-4">
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <Input
+              type="text"
+              placeholder="Müşteri adı ile ara..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyPress={handleKeyPress}
+            />
+          </div>
+          <div className="w-48">
+            <Input
+              type="text"
+              placeholder="Sektör filtrele..."
+              value={industryFilter}
+              onChange={(e) => setIndustryFilter(e.target.value)}
+              onKeyPress={handleKeyPress}
+            />
+          </div>
+          <Button onClick={handleSearch}>Ara</Button>
+        </div>
+      </Card>
+
+      {/* Table */}
+      <Card>
+        {clients.length === 0 ? (
+          <div className="p-6 text-center text-muted-foreground">
+            Henüz müşteri bulunmuyor
+          </div>
+        ) : (
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Müşteri Adı</TableHead>
+                  <TableHead>Sektör</TableHead>
+                  <TableHead>İletişim E-posta</TableHead>
+                  <TableHead>Telefon</TableHead>
+                  <TableHead>Oluşturulma Tarihi</TableHead>
+                  <TableHead className="text-right">İşlemler</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {clients.map((client) => (
+                  <TableRow key={client.client_id}>
+                    <TableCell className="font-medium">{client.name}</TableCell>
+                    <TableCell>{client.industry || '-'}</TableCell>
+                    <TableCell>{client.contact_email || '-'}</TableCell>
+                    <TableCell>{client.contact_phone || '-'}</TableCell>
+                    <TableCell>{formatDate(client.created_at)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onEdit(client)}
+                        >
+                          Düzenle
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onDelete(client)}
+                        >
+                          Sil
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between border-t p-4">
+                <div className="text-sm text-muted-foreground">
+                  Toplam {pagination.total} müşteri - Sayfa {pagination.page} / {pagination.totalPages}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePreviousPage}
+                    disabled={pagination.page === 1}
+                  >
+                    Önceki
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={pagination.page === pagination.totalPages}
+                  >
+                    Sonraki
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </Card>
+    </div>
+  );
+}
