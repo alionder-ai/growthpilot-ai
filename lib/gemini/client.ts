@@ -115,3 +115,25 @@ export function getGeminiClient(): GeminiClient {
   }
   return geminiClient;
 }
+
+/**
+ * Convenience function to generate content using the singleton client
+ */
+export async function generateContent(
+  prompt: string,
+  maxTokens: number = TOKEN_LIMITS.ACTION_PLAN
+): Promise<string> {
+  const client = getGeminiClient();
+  return client.generateContent(prompt, maxTokens);
+}
+
+/**
+ * Convenience function to generate JSON using the singleton client
+ */
+export async function generateJSON<T>(
+  prompt: string,
+  maxTokens: number = TOKEN_LIMITS.ACTION_PLAN
+): Promise<T> {
+  const client = getGeminiClient();
+  return client.generateJSON<T>(prompt, maxTokens);
+}
