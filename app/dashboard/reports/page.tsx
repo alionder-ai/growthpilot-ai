@@ -2,8 +2,11 @@ import { createClient } from '@/lib/supabase/server';
 import ReportGenerator from '@/components/reports/ReportGenerator';
 import ReportHistory from '@/components/reports/ReportHistory';
 
+// Force dynamic rendering - this page requires authentication
+export const dynamic = 'force-dynamic';
+
 export default async function ReportsPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
   
   // Fetch user's clients for the dropdown
   const { data: { user } } = await supabase.auth.getUser();

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next';
 import { performHealthCheck, getSystemMetrics } from '@/lib/monitoring/health-check';
 
+// Force dynamic rendering - this endpoint needs runtime data
+export const dynamic = 'force-dynamic';
+
 /**
  * Health Check Endpoint
  * 
