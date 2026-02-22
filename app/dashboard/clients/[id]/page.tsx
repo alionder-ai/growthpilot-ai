@@ -41,34 +41,16 @@ export default function ClientDetailPage() {
     }
   };
 
-  const handleConnectMeta = async () => {
-    try {
-      setConnecting(true);
-      setError(null);
-
-      const response = await fetch('/api/meta/connect', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ clientId }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Meta bağlantısı başlatılamadı');
-      }
-
-      const data = await response.json();
-      
-      if (data.authUrl) {
-        window.location.href = data.authUrl;
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
-    } finally {
-      setConnecting(false);
+  const handleConnectMeta = () => {
+    if (!client?.id) {
+      setError('Müşteri ID bulunamadı');
+      return;
     }
+
+    setConnecting(true);
+    setError(null);
+
+    window.location.href = `/api/meta/connect?clientId=${client.id}`;
   };
 
   if (loading) {
