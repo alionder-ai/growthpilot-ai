@@ -1,8 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+
 import { Client } from '@/lib/types';
-import { formatDate } from '@/lib/utils/locale';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -11,9 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
+import { formatDate } from '@/lib/utils/locale';
 
 interface ClientListProps {
   onEdit: (client: Client) => void;
@@ -78,6 +79,7 @@ export default function ClientList({ onEdit, onDelete, refreshTrigger }: ClientL
 
   useEffect(() => {
     fetchClients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, refreshTrigger]);
 
   const handleSearch = () => {

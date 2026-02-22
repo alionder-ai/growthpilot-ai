@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+
+import { Client } from '@/lib/types';
 import {
   Select,
   SelectContent,
@@ -8,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Client } from '@/lib/types';
 
 interface ClientFilterProps {
   selectedClientId: string | null;
@@ -21,7 +22,6 @@ export function ClientFilter({
 }: ClientFilterProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchClients();
@@ -30,7 +30,6 @@ export function ClientFilter({
   const fetchClients = async () => {
     try {
       setIsLoading(true);
-      setError(null);
 
       const response = await fetch('/api/clients');
       if (!response.ok) {
@@ -38,10 +37,9 @@ export function ClientFilter({
       }
 
       const data = await response.json();
-      setClients(data);
+      setClients(data.clients || []);
     } catch (err) {
-      console.error('Error fetching clients:', err);
-      setError('Müşteriler yüklenirken hata oluştu');
+      setClients([]);
     } finally {
       setIsLoading(false);
     }
@@ -55,12 +53,8 @@ export function ClientFilter({
     }
   };
 
-  if (error) {
-    return (
-      <div className="text-sm text-red-600">
-        {error}
-      </div>
-    );
+  if (clients.length === 0) {
+    return null;
   }
 
   return (
