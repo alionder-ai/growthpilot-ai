@@ -18,6 +18,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { clientId } = body;
 
+    console.log('[META_CONNECT] Gelen clientId:', clientId, 'User ID:', user.id);
+
     if (!clientId) {
       return NextResponse.json(
         { error: 'Müşteri ID gerekli' },
@@ -31,6 +33,8 @@ export async function POST(request: NextRequest) {
       .eq('id', clientId)
       .eq('user_id', user.id)
       .single();
+
+    console.log('[META_CONNECT] Supabase sorgu:', { client, error: clientError?.message });
 
     if (clientError || !client) {
       return NextResponse.json(
@@ -55,8 +59,11 @@ export async function POST(request: NextRequest) {
       `&state=${state}` +
       `&scope=ads_read,ads_management`;
 
+    console.log('[META_CONNECT] Auth URL başarıyla oluşturuldu');
+
     return NextResponse.json({ authUrl });
   } catch (error) {
+    console.error('[META_CONNECT] Hata:', error);
     return NextResponse.json(
       { error: 'Meta bağlantısı başlatılırken bir hata oluştu' },
       { status: 500 }
