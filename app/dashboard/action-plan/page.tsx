@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -11,7 +12,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-// Lazy load ActionPlanCard for better performance
 const ActionPlanCard = lazy(() => import('@/components/ai/ActionPlanCard'));
 
 interface Client {
@@ -40,16 +40,16 @@ export default function ActionPlanPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch clients on mount
   useEffect(() => {
     fetchClients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch action plan when client is selected
   useEffect(() => {
     if (selectedClientId) {
       fetchActionPlan(selectedClientId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClientId]);
 
   const fetchClients = async () => {
@@ -57,15 +57,15 @@ export default function ActionPlanPage() {
       const response = await fetch('/api/clients');
       if (!response.ok) throw new Error('Müşteriler yüklenemedi');
       const data = await response.json();
-      setClients(data);
+      const clientList = data?.clients || [];
+      setClients(clientList);
       
-      // Auto-select first client if available
-      if (data.length > 0 && !selectedClientId) {
-        setSelectedClientId(data[0].client_id);
+      if (clientList.length > 0 && !selectedClientId) {
+        setSelectedClientId(clientList[0].client_id);
       }
     } catch (err) {
-      console.error('Error fetching clients:', err);
       setError('Müşteriler yüklenirken hata oluştu');
+      setClients([]);
     }
   };
 
@@ -74,7 +74,6 @@ export default function ActionPlanPage() {
     setError(null);
     
     try {
-      // Fetch latest active action plan for this client
       const response = await fetch(`/api/ai/recommendations?clientId=${clientId}&type=action_plan&status=active&limit=1`);
       
       if (!response.ok) {
@@ -86,14 +85,15 @@ export default function ActionPlanPage() {
       }
       
       const data = await response.json();
-      if (data.length > 0) {
-        setActionPlan(data[0]);
+      const plans = Array.isArray(data) ? data : [];
+      if (plans.length > 0) {
+        setActionPlan(plans[0]);
       } else {
         setActionPlan(null);
       }
     } catch (err) {
-      console.error('Error fetching action plan:', err);
       setError('Aksiyon planı yüklenirken hata oluştu');
+      setActionPlan(null);
     } finally {
       setLoading(false);
     }
@@ -119,12 +119,8 @@ export default function ActionPlanPage() {
         throw new Error(errorData.error || 'Aksiyon planı oluşturulamadı');
       }
       
-      const data = await response.json();
-      
-      // Refresh action plan
       await fetchActionPlan(selectedClientId);
     } catch (err) {
-      console.error('Error generating action plan:', err);
       setError(err instanceof Error ? err.message : 'Aksiyon planı oluşturulurken hata oluştu');
     } finally {
       setGenerating(false);
@@ -132,11 +128,12 @@ export default function ActionPlanPage() {
   };
 
   const handleActionComplete = () => {
-    // Refresh action plan after completion
     if (selectedClientId) {
       fetchActionPlan(selectedClientId);
     }
   };
+
+  const showEmptyState = !loading && clients.length === 0;
 
   return (
     <div className="space-y-6">
@@ -149,95 +146,127 @@ export default function ActionPlanPage() {
         </div>
       </div>
 
-      {/* Client Selection */}
-      <Card className="p-6">
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Müşteri Seçin
-            </label>
-            <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Müşteri seçin" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client: Client) => (
-                  <SelectItem key={client.client_id} value={client.client_id}>
-                    {client.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="pt-6">
-            <Button
-              onClick={generateActionPlan}
-              disabled={!selectedClientId || generating}
+      {showEmptyState ? (
+        <div className="flex flex-col items-center justify-center py-16 px-4">
+          <div className="text-center max-w-md">
+            <div className="mb-6">
+              <svg
+                className="mx-auto h-24 w-24 text-gray-300"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+              Henüz veri yok
+            </h2>
+            <p className="text-gray-600 mb-8">
+              Aksiyon planı oluşturmak için önce müşteri ekleyin ve kampanyalarınızı yönetmeye başlayın.
+            </p>
+            <a
+              href="/dashboard/clients"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              {generating ? 'Oluşturuluyor...' : 'Yeni Plan Oluştur'}
-            </Button>
+              <svg
+                className="mr-2 h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              Yeni Müşteri Ekle
+            </a>
           </div>
         </div>
-      </Card>
+      ) : (
+        <>
+          <Card className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Müşteri Seçin
+                </label>
+                <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Müşteri seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients?.map((client: Client) => (
+                      <SelectItem key={client.client_id} value={client.client_id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="pt-6">
+                <Button
+                  onClick={generateActionPlan}
+                  disabled={!selectedClientId || generating}
+                >
+                  {generating ? 'Oluşturuluyor...' : 'Yeni Plan Oluştur'}
+                </Button>
+              </div>
+            </div>
+          </Card>
 
-      {/* Error Message */}
-      {error && (
-        <Card className="p-4 bg-red-50 border-red-200">
-          <p className="text-sm text-red-800">{error}</p>
-        </Card>
-      )}
+          {error && (
+            <Card className="p-4 bg-red-50 border-red-200">
+              <p className="text-sm text-red-800">{error}</p>
+            </Card>
+          )}
 
-      {/* Loading State */}
-      {loading && (
-        <Card className="p-6">
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            <span className="ml-3 text-gray-600">Yükleniyor...</span>
-          </div>
-        </Card>
-      )}
+          {loading && (
+            <Card className="p-6">
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                <span className="ml-3 text-gray-600">Yükleniyor...</span>
+              </div>
+            </Card>
+          )}
 
-      {/* Action Plan Display */}
-      {!loading && selectedClientId && actionPlan && (
-        <Suspense fallback={<ActionPlanSkeleton />}>
-          <ActionPlanCard
-            recommendationId={actionPlan.recommendation_id}
-            actions={actionPlan.content}
-            onActionComplete={handleActionComplete}
-          />
-        </Suspense>
-      )}
+          {!loading && selectedClientId && actionPlan && (
+            <Suspense fallback={<ActionPlanSkeleton />}>
+              <ActionPlanCard
+                recommendationId={actionPlan.recommendation_id}
+                actions={actionPlan.content}
+                onActionComplete={handleActionComplete}
+              />
+            </Suspense>
+          )}
 
-      {/* No Action Plan State */}
-      {!loading && selectedClientId && !actionPlan && !error && (
-        <Card className="p-6">
-          <div className="text-center py-8">
-            <p className="text-gray-600 mb-4">
-              Bu müşteri için henüz aksiyon planı oluşturulmamış.
-            </p>
-            <Button onClick={generateActionPlan} disabled={generating}>
-              {generating ? 'Oluşturuluyor...' : 'İlk Planı Oluştur'}
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {/* No Client Selected State */}
-      {!selectedClientId && clients.length === 0 && !loading && (
-        <Card className="p-6">
-          <div className="text-center py-8">
-            <p className="text-gray-600">
-              Aksiyon planı oluşturmak için önce bir müşteri ekleyin.
-            </p>
-          </div>
-        </Card>
+          {!loading && selectedClientId && !actionPlan && !error && (
+            <Card className="p-6">
+              <div className="text-center py-8">
+                <p className="text-gray-600 mb-4">
+                  Bu müşteri için henüz aksiyon planı oluşturulmamış.
+                </p>
+                <Button onClick={generateActionPlan} disabled={generating}>
+                  {generating ? 'Oluşturuluyor...' : 'İlk Planı Oluştur'}
+                </Button>
+              </div>
+            </Card>
+          )}
+        </>
       )}
     </div>
   );
 }
 
-// Loading skeleton for action plan
 function ActionPlanSkeleton() {
   return (
     <Card className="p-6">
