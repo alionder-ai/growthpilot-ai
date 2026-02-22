@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 
-import { getAuthErrorMessage, signInWithEmail } from '@/lib/supabase/auth';
+import { getAuthErrorMessage } from '@/lib/supabase/auth';
 import { 
   logLoginSuccess, 
   logLoginFailed, 
@@ -33,8 +35,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Attempt to sign in
-    const { user, session, error } = await signInWithEmail(email, password);
+    // Create server-side Supabase client with cookie handling
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set(name, value, options);
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.set(name, '', options);
+          },
+        },
+      }
+    );
+
+    // Attempt to sign in using server-side client
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
     if (error) {
       // Log failed login attempt
@@ -46,7 +71,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!user || !session) {
+    if (!data.user || !data.session) {
       await logLoginFailed(email, 'No user or session returned', ipAddress, userAgent);
       return NextResponse.json(
         { error: 'Giriş başarısız oldu' },
@@ -55,17 +80,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Log successful login
-    await logLoginSuccess(user.id, email, ipAddress, userAgent);
+    await logLoginSuccess(data.user.id, email, ipAddress, userAgent);
 
     return NextResponse.json({
       user: {
-        id: user.id,
-        email: user.email,
+        id: data.user.id,
+        email: data.user.email,
       },
       session: {
-        access_token: session.access_token,
-        refresh_token: session.refresh_token,
-        expires_at: session.expires_at,
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+        expires_at: data.session.expires_at,
       },
     });
   } catch (error) {

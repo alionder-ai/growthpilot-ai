@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 
-import { getAuthErrorMessage, signUpWithEmail } from '@/lib/supabase/auth';
+import { getAuthErrorMessage } from '@/lib/supabase/auth';
 import { isValidEmail, isValidPassword } from '@/lib/utils/validation';
 import { 
   logSignupSuccess, 
@@ -52,8 +54,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Attempt to sign up
-    const { user, session, error } = await signUpWithEmail(email, password);
+    // Create server-side Supabase client with cookie handling
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set(name, value, options);
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.set(name, '', options);
+          },
+        },
+      }
+    );
+
+    // Attempt to sign up using server-side client
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
 
     if (error) {
       await logSignupFailed(email, error.message, ipAddress, userAgent);
@@ -63,7 +88,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!user) {
+    if (!data.user) {
       await logSignupFailed(email, 'No user returned', ipAddress, userAgent);
       return NextResponse.json(
         { error: 'Kayıt başarısız oldu' },
@@ -72,17 +97,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Log successful signup
-    await logSignupSuccess(user.id, email, ipAddress, userAgent);
+    await logSignupSuccess(data.user.id, email, ipAddress, userAgent);
 
     return NextResponse.json({
       user: {
-        id: user.id,
-        email: user.email,
+        id: data.user.id,
+        email: data.user.email,
       },
-      session: session ? {
-        access_token: session.access_token,
-        refresh_token: session.refresh_token,
-        expires_at: session.expires_at,
+      session: data.session ? {
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+        expires_at: data.session.expires_at,
       } : null,
       message: 'Kayıt başarılı. E-posta adresinizi doğrulayın.',
     });
