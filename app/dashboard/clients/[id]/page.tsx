@@ -11,7 +11,9 @@ import { Client } from '@/lib/types';
 export default function ClientDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const clientId = params.id as string;
+  
+  const rawId = params.id;
+  const clientId = Array.isArray(rawId) ? rawId[0] : rawId;
 
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,25 +21,36 @@ export default function ClientDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchClient = useCallback(async () => {
-    if (!clientId) return;
+    if (!clientId) {
+      console.error('[CLIENT_DETAIL] No client ID found in params:', params);
+      setError('Müşteri ID bulunamadı');
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
       setError(null);
 
-      console.log('[CLIENT_DETAIL] Fetching client:', clientId);
+      console.log('[CLIENT_DETAIL] Fetching client with ID:', clientId);
       const response = await fetch(`/api/clients/${clientId}`);
       
       console.log('[CLIENT_DETAIL] Response status:', response.status);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('[CLIENT_DETAIL] API Error:', errorData);
+        console.error('[CLIENT_DETAIL] API Error Response:', errorData);
         throw new Error(errorData.error || 'Müşteri bilgileri yüklenemedi');
       }
 
       const data = await response.json();
       console.log('[CLIENT_DETAIL] Client data received:', data);
+      
+      if (!data.client) {
+        console.error('[CLIENT_DETAIL] No client in response data');
+        throw new Error('Müşteri verisi bulunamadı');
+      }
+      
       setClient(data.client);
     } catch (err) {
       console.error('[CLIENT_DETAIL] Fetch error:', err);
@@ -45,7 +58,7 @@ export default function ClientDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [clientId]);
+  }, [clientId, params]);
 
   useEffect(() => {
     fetchClient();
@@ -78,7 +91,8 @@ export default function ClientDetailPage() {
           ← Geri Dön
         </Button>
         <Card className="p-6 bg-red-50 border-red-200">
-          <p className="text-red-800">{error}</p>
+          <p className="text-red-800 font-semibold mb-2">Hata</p>
+          <p className="text-red-700">{error}</p>
           <Button 
             variant="outline" 
             onClick={fetchClient}

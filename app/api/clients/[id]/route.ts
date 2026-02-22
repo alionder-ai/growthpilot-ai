@@ -29,7 +29,15 @@ export async function GET(
       .single();
 
     if (error) {
-      console.error('[CLIENT_API] Supabase error:', error);
+      console.error('[CLIENT_API] SUPABASE FETCH HATASI:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        clientId: params.id,
+        userId: user.id
+      });
+      
       if (error.code === 'PGRST116') {
         return NextResponse.json(
           { error: 'Müşteri bulunamadı' },
