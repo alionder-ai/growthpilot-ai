@@ -16,8 +16,6 @@ export async function GET(request: NextRequest) {
 
     const clientId = request.nextUrl.searchParams.get('clientId');
 
-    console.log('[META_CONNECT] Gelen clientId:', clientId, 'User ID:', user.id);
-
     if (!clientId) {
       const redirectUrl = new URL('/dashboard/clients', request.url);
       redirectUrl.searchParams.set('error', 'client_id_required');
@@ -30,8 +28,6 @@ export async function GET(request: NextRequest) {
       .eq('id', clientId)
       .eq('user_id', user.id)
       .single();
-
-    console.log('[META_CONNECT] Supabase sorgu:', { client, error: clientError?.message });
 
     if (clientError || !client) {
       const redirectUrl = new URL('/dashboard/clients', request.url);
@@ -57,11 +53,9 @@ export async function GET(request: NextRequest) {
       `&state=${state}` +
       `&scope=ads_read,ads_management`;
 
-    console.log('[META_CONNECT] Redirecting to Meta OAuth');
-
     return NextResponse.redirect(authUrl);
   } catch (error) {
-    console.error('[META_CONNECT] Hata:', error);
+    console.error('[META_CONNECT] Error:', error);
     const redirectUrl = new URL('/dashboard/clients', request.url);
     redirectUrl.searchParams.set('error', 'meta_connect_failed');
     return NextResponse.redirect(redirectUrl);

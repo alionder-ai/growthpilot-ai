@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+
 import { Client } from '@/lib/types';
 
 export default function ClientDetailPage() {
@@ -42,22 +43,15 @@ export default function ClientDetailPage() {
   };
 
   const handleConnectMeta = () => {
-    console.log('[CLIENT_DETAIL] Meta bağlantısı başlatılıyor, client:', client);
-    console.log('[CLIENT_DETAIL] Client ID:', client?.id);
-    
     if (!client?.id) {
       setError('Müşteri ID bulunamadı');
-      console.error('[CLIENT_DETAIL] Client ID bulunamadı!');
       return;
     }
 
     setConnecting(true);
     setError(null);
 
-    const connectUrl = `/api/meta/connect?clientId=${client.id}`;
-    console.log('[CLIENT_DETAIL] Yönlendiriliyor:', connectUrl);
-    
-    window.location.href = connectUrl;
+    window.location.href = `/api/meta/connect?clientId=${client.id}`;
   };
 
   if (loading) {
