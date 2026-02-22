@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient as createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
-import { createClient } from '@/lib/supabase/server';
 import { encrypt } from '@/lib/utils/encryption';
 
 export async function GET(request: NextRequest) {
@@ -22,15 +23,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { clientId, userId } = JSON.parse(Buffer.from(state, 'base64').toString());
+    let clientId: string;
+    let userId: string;
 
-    const supabase = await createClient();
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user || user.id !== userId) {
+    try {
+      const decoded = JSON.parse(Buffer.from(state, 'base64').toString());
+      clientId = decoded.clientId;
+      userId = decoded.userId;
+    } catch (err) {
       return NextResponse.redirect(
-        new URL('/dashboard/clients?error=unauthorized', request.url)
+        new URL('/dashboard/clients?error=invalid_state', request.url)
       );
     }
 
@@ -53,26 +55,22 @@ export async function GET(request: NextRequest) {
     );
 
     if (!tokenResponse.ok) {
-      throw new Error('Token exchange failed');
+      return NextResponse.redirect(
+        new URL('/dashboard/clients?error=token_exchange_failed', request.url)
+      );
     }
 
     const tokenData = await tokenResponse.json();
     const accessToken = tokenData.access_token;
-
-    const meResponse = await fetch(
-      `https://graph.facebook.com/v18.0/me?fields=id,name&access_token=${accessToken}`
-    );
-
-    if (!meResponse.ok) {
-      throw new Error('Failed to fetch user info');
-    }
 
     const adAccountsResponse = await fetch(
       `https://graph.facebook.com/v18.0/me/adaccounts?fields=id,name,account_id&access_token=${accessToken}`
     );
 
     if (!adAccountsResponse.ok) {
-      throw new Error('Failed to fetch ad accounts');
+      return NextResponse.redirect(
+        new URL('/dashboard/clients?error=ad_accounts_fetch_failed', request.url)
+      );
     }
 
     const adAccountsData = await adAccountsResponse.json();
@@ -89,7 +87,34 @@ export async function GET(request: NextRequest) {
 
     const encryptedToken = encrypt(accessToken);
 
-    const { error: tokenError } = await supabase
+    const cookieStore = await cookies();
+    const supabaseAdmin = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: any) {
+            try {
+              cookieStore.set(name, value, options);
+            } catch (error) {
+              // Ignore
+            }
+          },
+          remove(name: string, options: any) {
+            try {
+              cookieStore.set(name, '', options);
+            } catch (error) {
+              // Ignore
+            }
+          },
+        },
+      }
+    );
+
+    const { error: tokenError } = await supabaseAdmin
       .from('meta_tokens')
       .upsert({
         user_id: userId,
@@ -100,10 +125,12 @@ export async function GET(request: NextRequest) {
       });
 
     if (tokenError) {
-      throw tokenError;
+      return NextResponse.redirect(
+        new URL('/dashboard/clients?error=token_save_failed', request.url)
+      );
     }
 
-    const { error: clientError } = await supabase
+    const { error: clientError } = await supabaseAdmin
       .from('clients')
       .update({
         meta_ad_account_id: adAccountId,
@@ -114,7 +141,9 @@ export async function GET(request: NextRequest) {
       .eq('user_id', userId);
 
     if (clientError) {
-      throw clientError;
+      return NextResponse.redirect(
+        new URL('/dashboard/clients?error=client_update_failed', request.url)
+      );
     }
 
     return NextResponse.redirect(
