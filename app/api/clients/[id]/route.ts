@@ -4,10 +4,16 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params;
+    const clientId = resolvedParams.id;
+
+    console.log('[CLIENT_API] Starting request for client ID:', clientId);
+
     const supabase = await createClient();
+    console.log('[CLIENT_API] Supabase client created');
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
@@ -19,12 +25,12 @@ export async function GET(
       );
     }
 
-    console.log('[CLIENT_API] Fetching client:', params.id, 'for user:', user.id);
+    console.log('[CLIENT_API] Fetching client:', clientId, 'for user:', user.id);
 
     const { data: client, error } = await supabase
       .from('clients')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', clientId)
       .eq('user_id', user.id)
       .single();
 
@@ -34,7 +40,7 @@ export async function GET(
         message: error.message,
         details: error.details,
         hint: error.hint,
-        clientId: params.id,
+        clientId: clientId,
         userId: user.id
       });
       
@@ -44,15 +50,34 @@ export async function GET(
           { status: 404 }
         );
       }
-      throw error;
+      
+      return NextResponse.json(
+        { 
+          error: 'Veritabanı hatası',
+          message: error.message,
+          code: error.code
+        },
+        { status: 500 }
+      );
     }
 
     console.log('[CLIENT_API] Client found:', client?.name);
     return NextResponse.json({ client });
   } catch (error) {
     console.error('[CLIENT_API] Unexpected error:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen API hatası';
+    const errorDetails = error instanceof Error ? {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    } : error;
+    
     return NextResponse.json(
-      { error: 'Müşteri bilgileri alınırken bir hata oluştu' },
+      { 
+        error: errorMessage,
+        details: errorDetails
+      },
       { status: 500 }
     );
   }
