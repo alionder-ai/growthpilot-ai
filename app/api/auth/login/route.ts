@@ -27,7 +27,11 @@ export async function POST(request: NextRequest) {
     const userAgent = getUserAgent(request.headers);
 
     if (!email || !password) {
-      await logLoginFailed(email || 'unknown', 'Missing credentials', ipAddress, userAgent);
+      try {
+        await logLoginFailed(email || 'unknown', 'Missing credentials', ipAddress, userAgent);
+      } catch (auditError) {
+        console.error('[LOGIN] Audit log error (non-critical):', auditError);
+      }
       return NextResponse.json(
         { error: 'E-posta ve şifre gereklidir' },
         { status: 400 }
@@ -65,7 +69,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      await logLoginFailed(email, error.message, ipAddress, userAgent);
+      try {
+        await logLoginFailed(email, error.message, ipAddress, userAgent);
+      } catch (auditError) {
+        console.error('[LOGIN] Audit log error (non-critical):', auditError);
+      }
       return NextResponse.json(
         { error: getAuthErrorMessage(error) },
         { status: 401 }
@@ -73,14 +81,22 @@ export async function POST(request: NextRequest) {
     }
 
     if (!data.user || !data.session) {
-      await logLoginFailed(email, 'No user or session returned', ipAddress, userAgent);
+      try {
+        await logLoginFailed(email, 'No user or session returned', ipAddress, userAgent);
+      } catch (auditError) {
+        console.error('[LOGIN] Audit log error (non-critical):', auditError);
+      }
       return NextResponse.json(
         { error: 'Giriş başarısız oldu' },
         { status: 401 }
       );
     }
 
-    await logLoginSuccess(data.user.id, email, ipAddress, userAgent);
+    try {
+      await logLoginSuccess(data.user.id, email, ipAddress, userAgent);
+    } catch (auditError) {
+      console.error('[LOGIN] Audit log error (non-critical):', auditError);
+    }
 
     return NextResponse.json({
       user: {
@@ -94,6 +110,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    console.error('[LOGIN] Critical error:', error);
     return NextResponse.json(
       { error: 'Bir hata oluştu. Lütfen tekrar deneyin' },
       { status: 500 }
