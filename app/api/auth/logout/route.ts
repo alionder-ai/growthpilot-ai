@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies();
+    
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -32,20 +33,30 @@ export async function POST(request: NextRequest) {
     const ipAddress = getIpAddress(request.headers);
     const userAgent = getUserAgent(request.headers);
 
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
-    }
+    await supabase.auth.signOut();
 
     if (user) {
       await logLogout(user.id, user.email || 'unknown', ipAddress, userAgent);
     }
 
-    return NextResponse.json({ success: true });
+    // Create response with redirect
+    const response = NextResponse.redirect(new URL('/login', request.url));
+    
+    // Manually delete all Supabase auth cookies
+    const allCookies = cookieStore.getAll();
+    allCookies.forEach((cookie) => {
+      if (cookie.name.startsWith('sb-') || cookie.name.includes('auth')) {
+        response.cookies.set(cookie.name, '', {
+          maxAge: 0,
+          path: '/',
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+        });
+      }
+    });
+
+    return response;
   } catch (error) {
     return NextResponse.json(
       { error: 'Çıkış yapılırken bir hata oluştu' },

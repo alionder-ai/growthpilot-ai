@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { AlertCircle, CheckCircle, Lock, Mail, User as UserIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -25,7 +24,6 @@ interface ProfileSettingsProps {
 }
 
 export function ProfileSettings({ user }: ProfileSettingsProps) {
-  const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -86,14 +84,12 @@ export function ProfileSettings({ user }: ProfileSettingsProps) {
 
   const handleSignOut = async () => {
     try {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
-
-      if (response.ok) {
-        router.push('/login');
-        router.refresh();
-      }
+      // Use POST method and let the server handle redirect
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/api/auth/logout';
+      document.body.appendChild(form);
+      form.submit();
     } catch (err) {
       setError('Çıkış yapılırken bir hata oluştu');
     }
