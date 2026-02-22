@@ -125,7 +125,7 @@ export function LoginForm() {
               htmlFor="rememberMe"
               className="text-sm font-normal cursor-pointer"
             >
-              Beni Hatırla (30 gün)
+              Beni hatırla
             </Label>
           </div>
 

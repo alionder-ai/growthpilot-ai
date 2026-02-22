@@ -87,7 +87,11 @@ export function ProfileSettings({ user }: ProfileSettingsProps) {
       });
 
       if (response.ok) {
-        window.location.href = '/login';
+        // Redirect to login and refresh
+        router.push('/login');
+        router.refresh();
+      } else {
+        console.error('Çıkış başarısız oldu');
       }
     } catch (err) {
       console.error('Çıkış hatası:', err);

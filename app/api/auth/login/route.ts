@@ -40,7 +40,8 @@ export async function POST(request: NextRequest) {
     const cookieStore = await cookies();
     
     // Set cookie maxAge based on rememberMe
-    const cookieMaxAge = rememberMe ? 60 * 60 * 24 * 30 : undefined; // 30 days or session
+    // If rememberMe is true: 7 days, otherwise: session cookie (no maxAge)
+    const cookieMaxAge = rememberMe ? 60 * 60 * 24 * 7 : undefined; // 7 days or session
     
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -51,10 +52,11 @@ export async function POST(request: NextRequest) {
             return cookieStore.get(name)?.value;
           },
           set(name: string, value: string, options: CookieOptions) {
-            // Override maxAge if rememberMe is set
-            const updatedOptions = cookieMaxAge 
+            // If rememberMe is true, set maxAge to 7 days
+            // If rememberMe is false, don't set maxAge (session cookie)
+            const updatedOptions = rememberMe 
               ? { ...options, maxAge: cookieMaxAge }
-              : options;
+              : { ...options, maxAge: undefined };
             cookieStore.set(name, value, updatedOptions);
           },
           remove(name: string, options: CookieOptions) {
