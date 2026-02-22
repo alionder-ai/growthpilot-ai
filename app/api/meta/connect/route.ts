@@ -47,7 +47,10 @@ export async function POST(request: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
     if (!metaAppId || !appUrl) {
-      throw new Error('META_APP_ID ve NEXT_PUBLIC_APP_URL environment variables zorunludur');
+      return NextResponse.json(
+        { error: 'Meta yapılandırması eksik' },
+        { status: 500 }
+      );
     }
 
     const redirectUri = `${appUrl}/api/meta/callback`;

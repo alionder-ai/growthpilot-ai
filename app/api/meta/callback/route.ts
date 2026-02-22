@@ -45,7 +45,9 @@ export async function GET(request: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
   if (!metaAppId || !metaAppSecret || !appUrl) {
-    throw new Error('META_APP_ID, META_APP_SECRET ve NEXT_PUBLIC_APP_URL environment variables zorunludur');
+    return NextResponse.redirect(
+      new URL('/dashboard/clients?error=meta_config_missing', request.url)
+    );
   }
 
   const redirectUri = `${appUrl}/api/meta/callback`;
