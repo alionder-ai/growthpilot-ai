@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
@@ -18,29 +18,38 @@ export default function ClientDetailPage() {
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchClient();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId]);
+  const fetchClient = useCallback(async () => {
+    if (!clientId) return;
 
-  const fetchClient = async () => {
     try {
       setLoading(true);
       setError(null);
 
+      console.log('[CLIENT_DETAIL] Fetching client:', clientId);
       const response = await fetch(`/api/clients/${clientId}`);
+      
+      console.log('[CLIENT_DETAIL] Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Müşteri bilgileri yüklenemedi');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[CLIENT_DETAIL] API Error:', errorData);
+        throw new Error(errorData.error || 'Müşteri bilgileri yüklenemedi');
       }
 
       const data = await response.json();
+      console.log('[CLIENT_DETAIL] Client data received:', data);
       setClient(data.client);
     } catch (err) {
+      console.error('[CLIENT_DETAIL] Fetch error:', err);
       setError(err instanceof Error ? err.message : 'Bir hata oluştu');
     } finally {
       setLoading(false);
     }
-  };
+  }, [clientId]);
+
+  useEffect(() => {
+    fetchClient();
+  }, [fetchClient]);
 
   const handleConnectMeta = () => {
     if (!client?.id) {
@@ -70,6 +79,13 @@ export default function ClientDetailPage() {
         </Button>
         <Card className="p-6 bg-red-50 border-red-200">
           <p className="text-red-800">{error}</p>
+          <Button 
+            variant="outline" 
+            onClick={fetchClient}
+            className="mt-4"
+          >
+            Tekrar Dene
+          </Button>
         </Card>
       </div>
     );

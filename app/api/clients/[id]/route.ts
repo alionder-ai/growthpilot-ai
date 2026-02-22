@@ -12,11 +12,14 @@ export async function GET(
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
+      console.error('[CLIENT_API] Auth error:', authError);
       return NextResponse.json(
         { error: 'Kimlik doğrulama gerekli' },
         { status: 401 }
       );
     }
+
+    console.log('[CLIENT_API] Fetching client:', params.id, 'for user:', user.id);
 
     const { data: client, error } = await supabase
       .from('clients')
@@ -26,6 +29,7 @@ export async function GET(
       .single();
 
     if (error) {
+      console.error('[CLIENT_API] Supabase error:', error);
       if (error.code === 'PGRST116') {
         return NextResponse.json(
           { error: 'Müşteri bulunamadı' },
@@ -35,8 +39,10 @@ export async function GET(
       throw error;
     }
 
+    console.log('[CLIENT_API] Client found:', client?.name);
     return NextResponse.json({ client });
   } catch (error) {
+    console.error('[CLIENT_API] Unexpected error:', error);
     return NextResponse.json(
       { error: 'Müşteri bilgileri alınırken bir hata oluştu' },
       { status: 500 }
