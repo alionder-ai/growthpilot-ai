@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 import { Client } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -123,7 +124,6 @@ export default function ClientList({ onEdit, onDelete, refreshTrigger }: ClientL
 
   return (
     <div className="space-y-4">
-      {/* Search and Filter */}
       <Card className="p-4">
         <div className="flex gap-4">
           <div className="flex-1">
@@ -148,7 +148,6 @@ export default function ClientList({ onEdit, onDelete, refreshTrigger }: ClientL
         </div>
       </Card>
 
-      {/* Table */}
       <Card>
         {clients.length === 0 ? (
           <div className="p-6 text-center text-muted-foreground">
@@ -163,6 +162,7 @@ export default function ClientList({ onEdit, onDelete, refreshTrigger }: ClientL
                   <TableHead>Sektör</TableHead>
                   <TableHead>İletişim E-posta</TableHead>
                   <TableHead>Telefon</TableHead>
+                  <TableHead>Meta Ads</TableHead>
                   <TableHead>Oluşturulma Tarihi</TableHead>
                   <TableHead className="text-right">İşlemler</TableHead>
                 </TableRow>
@@ -170,13 +170,38 @@ export default function ClientList({ onEdit, onDelete, refreshTrigger }: ClientL
               <TableBody>
                 {clients.map((client) => (
                   <TableRow key={client.client_id}>
-                    <TableCell className="font-medium">{client.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <Link 
+                        href={`/dashboard/clients/${client.client_id}`}
+                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {client.name}
+                      </Link>
+                    </TableCell>
                     <TableCell>{client.industry || '-'}</TableCell>
                     <TableCell>{client.contact_email || '-'}</TableCell>
                     <TableCell>{client.contact_phone || '-'}</TableCell>
+                    <TableCell>
+                      {client.meta_connected ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                          Bağlı
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          <span className="w-2 h-2 bg-gray-400 rounded-full mr-1"></span>
+                          Bağlı Değil
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell>{formatDate(client.created_at)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        <Link href={`/dashboard/clients/${client.client_id}`}>
+                          <Button variant="outline" size="sm">
+                            Detay
+                          </Button>
+                        </Link>
                         <Button
                           variant="outline"
                           size="sm"
@@ -198,7 +223,6 @@ export default function ClientList({ onEdit, onDelete, refreshTrigger }: ClientL
               </TableBody>
             </Table>
 
-            {/* Pagination */}
             {pagination.totalPages > 1 && (
               <div className="flex items-center justify-between border-t p-4">
                 <div className="text-sm text-muted-foreground">

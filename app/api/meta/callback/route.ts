@@ -1,31 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+
+import { createClient } from '@/lib/supabase/server';
 import { encrypt } from '@/lib/utils/encryption';
 
-export const dynamic = 'force-dynamic';
-
-const META_APP_ID = process.env.META_APP_ID;
-const META_APP_SECRET = process.env.META_APP_SECRET;
-const META_REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/api/meta/callback`;
-
-interface MetaTokenResponse {
-  access_token: string;
-  token_type: string;
-  expires_in?: number;
-}
-
-interface MetaAdAccountsResponse {
-  data: Array<{
-    id: string;
-    account_id: string;
-    name: string;
-  }>;
-}
-
-/**
- * GET /api/meta/callback
- * Handles Meta OAuth callback
- */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -33,119 +10,119 @@ export async function GET(request: NextRequest) {
     const state = searchParams.get('state');
     const error = searchParams.get('error');
 
-    // Handle OAuth errors
     if (error) {
-      console.error('Meta OAuth error:', error);
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/clients?error=meta_auth_failed`
+        new URL(`/dashboard/clients?error=${encodeURIComponent('Meta bağlantısı iptal edildi')}`, request.url)
       );
     }
 
-    if (!code) {
+    if (!code || !state) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/clients?error=missing_code`
+        new URL('/dashboard/clients?error=invalid_request', request.url)
       );
     }
 
-    if (!META_APP_ID || !META_APP_SECRET) {
-      console.error('Meta API credentials not configured');
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/clients?error=config_error`
-      );
-    }
+    const { clientId, userId } = JSON.parse(Buffer.from(state, 'base64').toString());
 
-    // Exchange code for access token
-    const tokenUrl = new URL('https://graph.facebook.com/v18.0/oauth/access_token');
-    tokenUrl.searchParams.append('client_id', META_APP_ID);
-    tokenUrl.searchParams.append('client_secret', META_APP_SECRET);
-    tokenUrl.searchParams.append('redirect_uri', META_REDIRECT_URI);
-    tokenUrl.searchParams.append('code', code);
+    const supabase = await createClient();
 
-    const tokenResponse = await fetch(tokenUrl.toString());
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     
-    if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.json();
-      console.error('Token exchange failed:', errorData);
+    if (authError || !user || user.id !== userId) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/clients?error=token_exchange_failed`
+        new URL('/dashboard/clients?error=unauthorized', request.url)
       );
     }
 
-    const tokenData: MetaTokenResponse = await tokenResponse.json();
+    const metaAppId = process.env.META_APP_ID;
+    const metaAppSecret = process.env.META_APP_SECRET;
+    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/meta/callback`;
+
+    if (!metaAppId || !metaAppSecret) {
+      return NextResponse.redirect(
+        new URL('/dashboard/clients?error=config_error', request.url)
+      );
+    }
+
+    const tokenResponse = await fetch(
+      `https://graph.facebook.com/v18.0/oauth/access_token?` +
+      `client_id=${metaAppId}` +
+      `&client_secret=${metaAppSecret}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&code=${code}`
+    );
+
+    if (!tokenResponse.ok) {
+      throw new Error('Token exchange failed');
+    }
+
+    const tokenData = await tokenResponse.json();
     const accessToken = tokenData.access_token;
 
-    // Get ad accounts for this token
-    const adAccountsUrl = new URL('https://graph.facebook.com/v18.0/me/adaccounts');
-    adAccountsUrl.searchParams.append('access_token', accessToken);
-    adAccountsUrl.searchParams.append('fields', 'id,account_id,name');
+    const meResponse = await fetch(
+      `https://graph.facebook.com/v18.0/me?fields=id,name&access_token=${accessToken}`
+    );
 
-    const adAccountsResponse = await fetch(adAccountsUrl.toString());
-    
+    if (!meResponse.ok) {
+      throw new Error('Failed to fetch user info');
+    }
+
+    const adAccountsResponse = await fetch(
+      `https://graph.facebook.com/v18.0/me/adaccounts?fields=id,name,account_id&access_token=${accessToken}`
+    );
+
     if (!adAccountsResponse.ok) {
-      console.error('Failed to fetch ad accounts');
+      throw new Error('Failed to fetch ad accounts');
+    }
+
+    const adAccountsData = await adAccountsResponse.json();
+    const adAccounts = adAccountsData.data || [];
+
+    if (adAccounts.length === 0) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/clients?error=ad_accounts_failed`
+        new URL('/dashboard/clients?error=no_ad_accounts', request.url)
       );
     }
 
-    const adAccountsData: MetaAdAccountsResponse = await adAccountsResponse.json();
+    const firstAdAccount = adAccounts[0];
+    const adAccountId = firstAdAccount.account_id;
 
-    if (!adAccountsData.data || adAccountsData.data.length === 0) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/clients?error=no_ad_accounts`
-      );
-    }
-
-    // Use the first ad account (in production, let user select)
-    const adAccount = adAccountsData.data[0];
-    const adAccountId = adAccount.account_id;
-
-    // Get authenticated user
-    const supabase = await createServerClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      console.error('Authentication error:', authError);
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/login?error=auth_required`
-      );
-    }
-
-    // Encrypt access token
     const encryptedToken = encrypt(accessToken);
 
-    // Calculate expiration (default 60 days for Meta tokens)
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 60);
-
-    // Store encrypted token in database
-    const { error: dbError } = await supabase
+    const { error: tokenError } = await supabase
       .from('meta_tokens')
       .upsert({
-        user_id: user.id,
-        encrypted_access_token: encryptedToken,
-        ad_account_id: adAccountId,
-        expires_at: expiresAt.toISOString(),
-        updated_at: new Date().toISOString(),
+        user_id: userId,
+        encrypted_token: encryptedToken,
+        expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
       }, {
-        onConflict: 'user_id',
+        onConflict: 'user_id'
       });
 
-    if (dbError) {
-      console.error('Database error:', dbError);
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/clients?error=db_error`
-      );
+    if (tokenError) {
+      throw tokenError;
     }
 
-    // Success - redirect to dashboard
+    const { error: clientError } = await supabase
+      .from('clients')
+      .update({
+        meta_ad_account_id: adAccountId,
+        meta_connected: true,
+        meta_connected_at: new Date().toISOString(),
+      })
+      .eq('client_id', clientId)
+      .eq('user_id', userId);
+
+    if (clientError) {
+      throw clientError;
+    }
+
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/clients?success=meta_connected`
+      new URL(`/dashboard/clients/${clientId}?success=meta_connected`, request.url)
     );
   } catch (error) {
-    console.error('Meta OAuth callback error:', error);
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/clients?error=unexpected_error`
+      new URL('/dashboard/clients?error=connection_failed', request.url)
     );
   }
 }

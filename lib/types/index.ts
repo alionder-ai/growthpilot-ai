@@ -13,6 +13,9 @@ export interface Client {
   industry: string | null;
   contact_email: string | null;
   contact_phone: string | null;
+  meta_ad_account_id: string | null;
+  meta_connected: boolean;
+  meta_connected_at: string | null;
   created_at: string;
   updated_at: string;
 }

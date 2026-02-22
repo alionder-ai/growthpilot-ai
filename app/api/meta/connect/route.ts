@@ -1,40 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const META_APP_ID = process.env.META_APP_ID;
-const META_REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/api/meta/callback`;
+import { createClient } from '@/lib/supabase/server';
 
-/**
- * POST /api/meta/connect
- * Initiates Meta OAuth flow
- */
 export async function POST(request: NextRequest) {
   try {
-    if (!META_APP_ID) {
+    const supabase = await createClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
       return NextResponse.json(
-        { error: 'Meta API yapılandırması eksik' },
+        { error: 'Kimlik doğrulama gerekli' },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { clientId } = body;
+
+    if (!clientId) {
+      return NextResponse.json(
+        { error: 'Müşteri ID gerekli' },
+        { status: 400 }
+      );
+    }
+
+    const { data: client, error: clientError } = await supabase
+      .from('clients')
+      .select('client_id')
+      .eq('client_id', clientId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (clientError || !client) {
+      return NextResponse.json(
+        { error: 'Müşteri bulunamadı' },
+        { status: 404 }
+      );
+    }
+
+    const metaAppId = process.env.META_APP_ID;
+    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/meta/callback`;
+
+    if (!metaAppId) {
+      return NextResponse.json(
+        { error: 'Meta App ID yapılandırılmamış' },
         { status: 500 }
       );
     }
 
-    // Build OAuth URL
-    const oauthUrl = new URL('https://www.facebook.com/v18.0/dialog/oauth');
-    oauthUrl.searchParams.append('client_id', META_APP_ID);
-    oauthUrl.searchParams.append('redirect_uri', META_REDIRECT_URI);
-    oauthUrl.searchParams.append('scope', 'ads_read,ads_management');
-    oauthUrl.searchParams.append('response_type', 'code');
-    
-    // Generate state for CSRF protection
-    const state = crypto.randomUUID();
-    oauthUrl.searchParams.append('state', state);
+    const state = Buffer.from(JSON.stringify({ clientId, userId: user.id })).toString('base64');
 
-    return NextResponse.json({
-      authUrl: oauthUrl.toString(),
-      state,
-    });
+    const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?` +
+      `client_id=${metaAppId}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&state=${state}` +
+      `&scope=ads_read,ads_management`;
+
+    return NextResponse.json({ authUrl });
   } catch (error) {
-    console.error('Meta OAuth initiation error:', error);
     return NextResponse.json(
-      { error: 'Meta bağlantısı başlatılamadı' },
+      { error: 'Meta bağlantısı başlatılırken bir hata oluştu' },
       { status: 500 }
     );
   }
