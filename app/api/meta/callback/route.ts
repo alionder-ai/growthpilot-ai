@@ -114,14 +114,14 @@ export async function GET(request: NextRequest) {
           set(name: string, value: string, options: any) {
             try {
               cookieStore.set(name, value, options);
-            } catch (error) {
+            } catch {
               // Ignore cookie errors
             }
           },
           remove(name: string, options: any) {
             try {
               cookieStore.set(name, '', options);
-            } catch (error) {
+            } catch {
               // Ignore cookie errors
             }
           },
@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
         meta_connected: true,
         meta_connected_at: new Date().toISOString(),
       })
-      .eq('id', clientId)
+      .eq('client_id', clientId)
       .eq('user_id', userId);
 
     if (clientError) {

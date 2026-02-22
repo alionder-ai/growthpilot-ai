@@ -1,11 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-
 import { Client } from '@/lib/types';
 
 export default function ClientDetailPage() {
@@ -22,7 +21,6 @@ export default function ClientDetailPage() {
 
   const fetchClient = useCallback(async () => {
     if (!clientId) {
-      console.error('[CLIENT_DETAIL] No client ID found in params:', params);
       setError('Müşteri ID bulunamadı');
       setLoading(false);
       return;
@@ -32,40 +30,33 @@ export default function ClientDetailPage() {
       setLoading(true);
       setError(null);
 
-      console.log('[CLIENT_DETAIL] Fetching client with ID:', clientId);
       const response = await fetch(`/api/clients/${clientId}`);
-      
-      console.log('[CLIENT_DETAIL] Response status:', response.status);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('[CLIENT_DETAIL] API Error Response:', errorData);
         throw new Error(errorData.error || 'Müşteri bilgileri yüklenemedi');
       }
 
       const data = await response.json();
-      console.log('[CLIENT_DETAIL] Client data received:', data);
       
       if (!data.client) {
-        console.error('[CLIENT_DETAIL] No client in response data');
         throw new Error('Müşteri verisi bulunamadı');
       }
       
       setClient(data.client);
     } catch (err) {
-      console.error('[CLIENT_DETAIL] Fetch error:', err);
       setError(err instanceof Error ? err.message : 'Bir hata oluştu');
     } finally {
       setLoading(false);
     }
-  }, [clientId, params]);
+  }, [clientId]);
 
   useEffect(() => {
     fetchClient();
   }, [fetchClient]);
 
   const handleConnectMeta = () => {
-    if (!client?.id) {
+    if (!client?.client_id) {
       setError('Müşteri ID bulunamadı');
       return;
     }
@@ -73,7 +64,7 @@ export default function ClientDetailPage() {
     setConnecting(true);
     setError(null);
 
-    window.location.href = `/api/meta/connect?clientId=${client.id}`;
+    window.location.href = `/api/meta/connect?clientId=${client.client_id}`;
   };
 
   if (loading) {

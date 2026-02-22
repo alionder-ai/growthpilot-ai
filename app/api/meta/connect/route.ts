@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
 
     const { data: client, error: clientError } = await supabase
       .from('clients')
-      .select('id')
-      .eq('id', clientId)
+      .select('client_id')
+      .eq('client_id', clientId)
       .eq('user_id', user.id)
       .single();
 
@@ -55,7 +55,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(authUrl);
   } catch (error) {
-    console.error('[META_CONNECT] Error:', error);
     const redirectUrl = new URL('/dashboard/clients', request.url);
     redirectUrl.searchParams.set('error', 'meta_connect_failed');
     return NextResponse.redirect(redirectUrl);
