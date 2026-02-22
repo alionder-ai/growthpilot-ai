@@ -8,6 +8,8 @@ import {
   getUserAgent 
 } from '@/lib/security/audit-logger';
 
+export const dynamic = 'force-dynamic';
+
 interface LoginRequestBody {
   email: string;
   password: string;

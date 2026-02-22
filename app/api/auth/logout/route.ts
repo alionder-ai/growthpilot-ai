@@ -4,6 +4,8 @@ import { signOut } from '@/lib/supabase/auth';
 import { createServerClient } from '@/lib/supabase/server';
 import { logLogout, getIpAddress, getUserAgent } from '@/lib/security/audit-logger';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     // Get current user before logout
