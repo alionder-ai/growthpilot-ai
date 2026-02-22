@@ -12,6 +12,9 @@ import { isValidEmail, isValidPassword } from '@/lib/utils/validation';
 
 export function SignupForm() {
   const router = useRouter();
+  const [firstName, setFirstName] = React.useState('');
+  const [lastName, setLastName] = React.useState('');
+  const [dateOfBirth, setDateOfBirth] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
@@ -23,7 +26,7 @@ export function SignupForm() {
     setError('');
 
     // Validation
-    if (!email || !password || !confirmPassword) {
+    if (!firstName || !lastName || !dateOfBirth || !email || !password || !confirmPassword) {
       setError('Tüm alanları doldurun');
       return;
     }
@@ -51,7 +54,13 @@ export function SignupForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ 
+          email, 
+          password,
+          firstName,
+          lastName,
+          dateOfBirth,
+        }),
       });
 
       const data = await response.json();
@@ -87,6 +96,46 @@ export function SignupForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">İsim</Label>
+              <Input
+                id="firstName"
+                type="text"
+                placeholder="İsminiz"
+                value={firstName}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFirstName(e.target.value)}
+                disabled={loading}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Soyisim</Label>
+              <Input
+                id="lastName"
+                type="text"
+                placeholder="Soyisminiz"
+                value={lastName}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLastName(e.target.value)}
+                disabled={loading}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="dateOfBirth">Doğum Tarihi</Label>
+            <Input
+              id="dateOfBirth"
+              type="date"
+              value={dateOfBirth}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDateOfBirth(e.target.value)}
+              disabled={loading}
+              required
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="email">E-posta</Label>
             <Input

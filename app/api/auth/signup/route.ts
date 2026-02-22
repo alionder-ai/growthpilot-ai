@@ -16,12 +16,15 @@ export const dynamic = 'force-dynamic';
 interface SignupRequestBody {
   email: string;
   password: string;
+  firstName?: string;
+  lastName?: string;
+  dateOfBirth?: string;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as SignupRequestBody;
-    const { email, password } = body;
+    const { email, password, firstName, lastName, dateOfBirth } = body;
 
     // Extract request metadata for audit logging
     const ipAddress = getIpAddress(request.headers);
@@ -78,6 +81,13 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          date_of_birth: dateOfBirth,
+        },
+      },
     });
 
     if (error) {

@@ -15,12 +15,13 @@ export const dynamic = 'force-dynamic';
 interface LoginRequestBody {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as LoginRequestBody;
-    const { email, password } = body;
+    const { email, password, rememberMe = false } = body;
 
     // Extract request metadata for audit logging
     const ipAddress = getIpAddress(request.headers);
@@ -37,6 +38,10 @@ export async function POST(request: NextRequest) {
 
     // Create server-side Supabase client with cookie handling
     const cookieStore = await cookies();
+    
+    // Set cookie maxAge based on rememberMe
+    const cookieMaxAge = rememberMe ? 60 * 60 * 24 * 30 : undefined; // 30 days or session
+    
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -46,7 +51,11 @@ export async function POST(request: NextRequest) {
             return cookieStore.get(name)?.value;
           },
           set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set(name, value, options);
+            // Override maxAge if rememberMe is set
+            const updatedOptions = cookieMaxAge 
+              ? { ...options, maxAge: cookieMaxAge }
+              : options;
+            cookieStore.set(name, value, updatedOptions);
           },
           remove(name: string, options: CookieOptions) {
             cookieStore.set(name, '', options);

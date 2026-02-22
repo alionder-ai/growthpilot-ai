@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { isValidEmail } from '@/lib/utils/validation';
 import { checkRateLimit, recordAttempt, getTimeUntilReset } from '@/lib/utils/rate-limit';
 
@@ -20,6 +21,7 @@ export function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -55,7 +57,7 @@ export function LoginForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
       });
 
       const data = await response.json();
@@ -110,6 +112,21 @@ export function LoginForm() {
               disabled={loading}
               required
             />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="rememberMe"
+              checked={rememberMe}
+              onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+              disabled={loading}
+            />
+            <Label
+              htmlFor="rememberMe"
+              className="text-sm font-normal cursor-pointer"
+            >
+              Beni Hatırla (30 gün)
+            </Label>
           </div>
 
           {error && (
