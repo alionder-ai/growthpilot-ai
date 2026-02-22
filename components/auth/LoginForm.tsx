@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 
-import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -11,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -18,7 +18,6 @@ import { checkRateLimit, recordAttempt, getTimeUntilReset } from '@/lib/utils/ra
 import { isValidEmail } from '@/lib/utils/validation';
 
 export function LoginForm() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -29,7 +28,6 @@ export function LoginForm() {
     e.preventDefault();
     setError('');
 
-    // Check rate limit
     const rateLimitKey = `login_${email}`;
     const rateLimit = checkRateLimit(rateLimitKey);
     
@@ -38,7 +36,6 @@ export function LoginForm() {
       return;
     }
 
-    // Validation
     if (!email || !password) {
       setError('E-posta ve şifre gereklidir');
       return;
@@ -68,9 +65,8 @@ export function LoginForm() {
         return;
       }
 
-      // Successful login - redirect to dashboard
       window.location.href = '/dashboard';
-    } catch (err: any) {
+    } catch (err) {
       recordAttempt(rateLimitKey);
       setError('Bir hata oluştu. Lütfen tekrar deneyin');
     } finally {
