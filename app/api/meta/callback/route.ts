@@ -42,16 +42,13 @@ export async function GET(request: NextRequest) {
 
   const metaAppId = process.env.META_APP_ID;
   const metaAppSecret = process.env.META_APP_SECRET;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL 
-    ? `https://${process.env.VERCEL_URL}` 
-    : 'http://localhost:3000';
-  const redirectUri = `${appUrl}/api/meta/callback`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
-  if (!metaAppId || !metaAppSecret) {
-    return NextResponse.redirect(
-      new URL('/dashboard/clients?error=missing_meta_config', request.url)
-    );
+  if (!metaAppId || !metaAppSecret || !appUrl) {
+    throw new Error('META_APP_ID, META_APP_SECRET ve NEXT_PUBLIC_APP_URL environment variables zorunludur');
   }
+
+  const redirectUri = `${appUrl}/api/meta/callback`;
 
   try {
     const tokenUrl = `https://graph.facebook.com/v18.0/oauth/access_token?` +

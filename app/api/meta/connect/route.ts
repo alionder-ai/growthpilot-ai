@@ -27,8 +27,8 @@ export async function POST(request: NextRequest) {
 
     const { data: client, error: clientError } = await supabase
       .from('clients')
-      .select('client_id')
-      .eq('client_id', clientId)
+      .select('id')
+      .eq('id', clientId)
       .eq('user_id', user.id)
       .single();
 
@@ -40,15 +40,13 @@ export async function POST(request: NextRequest) {
     }
 
     const metaAppId = process.env.META_APP_ID;
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/meta/callback`;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
-    if (!metaAppId) {
-      return NextResponse.json(
-        { error: 'Meta App ID yapılandırılmamış' },
-        { status: 500 }
-      );
+    if (!metaAppId || !appUrl) {
+      throw new Error('META_APP_ID ve NEXT_PUBLIC_APP_URL environment variables zorunludur');
     }
 
+    const redirectUri = `${appUrl}/api/meta/callback`;
     const state = Buffer.from(JSON.stringify({ clientId, userId: user.id })).toString('base64');
 
     const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?` +
