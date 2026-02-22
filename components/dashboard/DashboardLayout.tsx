@@ -87,7 +87,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const openSidebar = () => setSidebarOpen(true);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -100,14 +100,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 z-30 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
+          fixed top-0 left-0 z-30 h-full w-64 flex-shrink-0 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out
           lg:translate-x-0 lg:static lg:z-0
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 flex-shrink-0">
             <Link href="/dashboard" className="flex items-center">
               <span className="text-xl font-bold text-gray-900">
                 GrowthPilot AI
@@ -146,10 +146,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="lg:pl-64">
+      {/* Main content area */}
+      <div className="flex flex-col flex-1 overflow-hidden">
         {/* Header */}
-        <header className="sticky top-0 z-10 bg-white shadow-sm">
+        <header className="flex-shrink-0 bg-white border-b border-gray-200">
           <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
             <button
               onClick={openSidebar}
@@ -170,7 +170,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </header>
 
         {/* Page content */}
-        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          {children}
+        </main>
       </div>
     </div>
   );
