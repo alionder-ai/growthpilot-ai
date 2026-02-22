@@ -81,6 +81,7 @@ export async function middleware(request: NextRequest) {
     '/reports',
     '/creative-generator',
     '/leads',
+    '/profile',
   ];
 
   const isProtectedPath = protectedPaths.some((path) =>
@@ -120,6 +121,7 @@ export const config = {
     '/reports/:path*',
     '/creative-generator/:path*',
     '/leads/:path*',
+    '/profile/:path*',
     '/login',
     '/register',
   ],

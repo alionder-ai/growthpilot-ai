@@ -9,6 +9,7 @@ import {
   Lightbulb,
   ListChecks,
   Menu,
+  Settings,
   Sparkles,
   Target,
   UserCheck,
@@ -69,6 +70,11 @@ const navigationItems: NavItem[] = [
     href: '/dashboard/leads',
     label: 'Potansiyel Müşteriler',
     icon: <UserCheck className="w-5 h-5" />,
+  },
+  {
+    href: '/dashboard/profile',
+    label: 'Profil Ayarları',
+    icon: <Settings className="w-5 h-5" />,
   },
 ];
 
