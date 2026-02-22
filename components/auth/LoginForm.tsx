@@ -67,8 +67,7 @@ export function LoginForm() {
       }
 
       // Successful login - redirect to dashboard
-      router.push('/dashboard');
-      router.refresh(); // Refresh to update server components
+      window.location.href = '/dashboard';
     } catch (err: any) {
       recordAttempt(rateLimitKey);
       setError('Bir hata oluştu. Lütfen tekrar deneyin');

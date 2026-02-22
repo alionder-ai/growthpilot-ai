@@ -69,7 +69,7 @@ export function SignupForm() {
       }
 
       // Redirect to login page
-      router.push('/login');
+      window.location.href = '/login';
     } catch (err) {
       setError('Bir hata oluştu. Lütfen tekrar deneyin');
     } finally {
