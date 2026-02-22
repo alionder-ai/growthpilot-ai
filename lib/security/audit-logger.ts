@@ -1,10 +1,3 @@
-/**
- * Authentication Audit Logger
- * 
- * Logs all authentication attempts for security auditing and compliance.
- * Validates Requirements: 15.6
- */
-
 import { createServerClient } from '@/lib/supabase/server';
 
 export type AuditEventType =
@@ -26,18 +19,12 @@ export interface AuditLogData {
   metadata?: Record<string, any>;
 }
 
-/**
- * Log an authentication event to the audit_logs table
- * 
- * @param eventType - Type of authentication event
- * @param data - Additional data about the event
- */
 export async function logAuthEvent(
   eventType: AuditEventType,
   data: AuditLogData
 ): Promise<void> {
   try {
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
     
     const { error } = await supabase
       .from('audit_logs')
@@ -51,18 +38,13 @@ export async function logAuthEvent(
       });
     
     if (error) {
-      // Log error but don't throw - audit logging should not break auth flow
       console.error('Error logging audit event:', error);
     }
   } catch (error) {
-    // Catch any errors to prevent audit logging from breaking auth
     console.error('Error in logAuthEvent:', error);
   }
 }
 
-/**
- * Log a successful login attempt
- */
 export async function logLoginSuccess(
   userId: string,
   email: string,
@@ -80,9 +62,6 @@ export async function logLoginSuccess(
   });
 }
 
-/**
- * Log a failed login attempt
- */
 export async function logLoginFailed(
   email: string,
   reason: string,
@@ -100,9 +79,6 @@ export async function logLoginFailed(
   });
 }
 
-/**
- * Log a logout event
- */
 export async function logLogout(
   userId: string,
   email: string,
@@ -120,9 +96,6 @@ export async function logLogout(
   });
 }
 
-/**
- * Log a successful signup
- */
 export async function logSignupSuccess(
   userId: string,
   email: string,
@@ -140,9 +113,6 @@ export async function logSignupSuccess(
   });
 }
 
-/**
- * Log a failed signup attempt
- */
 export async function logSignupFailed(
   email: string,
   reason: string,
@@ -160,9 +130,6 @@ export async function logSignupFailed(
   });
 }
 
-/**
- * Log a password reset request
- */
 export async function logPasswordResetRequest(
   email: string,
   ipAddress?: string,
@@ -178,9 +145,6 @@ export async function logPasswordResetRequest(
   });
 }
 
-/**
- * Log a successful password reset
- */
 export async function logPasswordResetSuccess(
   userId: string,
   email: string,
@@ -198,9 +162,6 @@ export async function logPasswordResetSuccess(
   });
 }
 
-/**
- * Log an email change
- */
 export async function logEmailChange(
   userId: string,
   oldEmail: string,
@@ -221,9 +182,6 @@ export async function logEmailChange(
   });
 }
 
-/**
- * Log an account deletion
- */
 export async function logAccountDeleted(
   userId: string,
   email: string,
@@ -241,19 +199,12 @@ export async function logAccountDeleted(
   });
 }
 
-/**
- * Get audit logs for a user
- * 
- * @param userId - User ID to get logs for
- * @param limit - Maximum number of logs to return (default: 100)
- * @returns Array of audit log records
- */
 export async function getUserAuditLogs(
   userId: string,
   limit: number = 100
 ): Promise<any[]> {
   try {
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
     
     const { data, error } = await supabase
       .from('audit_logs')
@@ -274,20 +225,12 @@ export async function getUserAuditLogs(
   }
 }
 
-/**
- * Get recent failed login attempts for an email
- * Used for rate limiting and security monitoring
- * 
- * @param email - Email address to check
- * @param minutes - Time window in minutes (default: 15)
- * @returns Number of failed attempts
- */
 export async function getRecentFailedLogins(
   email: string,
   minutes: number = 15
 ): Promise<number> {
   try {
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
     
     const cutoffTime = new Date();
     cutoffTime.setMinutes(cutoffTime.getMinutes() - minutes);
@@ -311,22 +254,17 @@ export async function getRecentFailedLogins(
   }
 }
 
-/**
- * Extract IP address from request headers
- */
 export function getIpAddress(headers: Headers): string | undefined {
-  // Check common headers for IP address (in order of preference)
   const ipHeaders = [
     'x-forwarded-for',
     'x-real-ip',
-    'cf-connecting-ip', // Cloudflare
+    'cf-connecting-ip',
     'x-client-ip',
   ];
   
   for (const header of ipHeaders) {
     const value = headers.get(header);
     if (value) {
-      // x-forwarded-for can contain multiple IPs, take the first one
       return value.split(',')[0].trim();
     }
   }
@@ -334,9 +272,6 @@ export function getIpAddress(headers: Headers): string | undefined {
   return undefined;
 }
 
-/**
- * Extract user agent from request headers
- */
 export function getUserAgent(headers: Headers): string | undefined {
   return headers.get('user-agent') || undefined;
 }
