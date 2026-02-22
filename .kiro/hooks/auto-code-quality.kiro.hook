@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Otomatik Kod Kalite Kontrolü",
+  "description": "Kod değişikliklerinde otomatik olarak tip hatalarını düzelt, kullanılmayan importları temizle ve import sıralamasını optimize et",
+  "version": "1",
+  "when": {
+    "type": "preToolUse",
+    "toolTypes": [
+      "write"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Yazdığın veya düzenleyeceğin kodu şu adımları uygulayarak optimize et:\n\n1. STATIK ANALİZ VE HATA ÇÖZÜMÜ:\n   - TypeScript tip hatalarını tespit et ve düzelt\n   - undefined/null riskleri için optional chaining (?.) veya nullish coalescing (??) ekle\n   - Eksik bağımlılıkları (useEffect, useCallback dependencies) tamamla\n   - Next.js best practices'e uygunluğu kontrol et\n\n2. UNUSED IMPORT TEMİZLİĞİ:\n   - Kullanılmayan tüm import statement'ları sil\n   - Kullanılmayan tip importlarını kaldır\n\n3. IMPORT SIRALAMA VE GRUPLAMA:\n   İmportları şu sıraya göre düzenle (gruplar arası 1 satır boşluk):\n   \n   a) Çekirdek Kütüphaneler:\n      - react, react-dom\n      - next/*, next/*\n   \n   b) 3. Parti Kütüphaneler (alfabetik):\n      - @supabase/*, lucide-react, recharts, vb.\n   \n   c) Lokal Dosyalar (alfabetik):\n      - @/components/*\n      - @/lib/*\n      - @/hooks/*\n      - @/types/*\n\n4. KOD KALİTESİ:\n   - Console.log'ları production kodundan kaldır (sadece geliştirme amaçlı olanları bırak)\n   - Gereksiz yorumları temizle\n   - Tutarlı kod formatlaması (prettier uyumlu)\n\nBu işlemleri yap ve kodu production-ready halde sun. Kullanıcıya sadece sonucu göster, süreç detaylarını açıklama."
+  }
+}

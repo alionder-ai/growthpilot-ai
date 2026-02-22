@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { User } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
+import { AlertCircle, CheckCircle, Lock, Mail, User as UserIcon } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Card,
   CardContent,
@@ -12,8 +12,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { AlertCircle, CheckCircle, Lock, Mail, User as UserIcon } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+interface User {
+  id: string;
+  email?: string;
+}
 
 interface ProfileSettingsProps {
   user: User;
@@ -33,7 +38,6 @@ export function ProfileSettings({ user }: ProfileSettingsProps) {
     setError('');
     setSuccess('');
 
-    // Validation
     if (!currentPassword || !newPassword || !confirmPassword) {
       setError('Tüm alanları doldurun');
       return;
@@ -73,8 +77,8 @@ export function ProfileSettings({ user }: ProfileSettingsProps) {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (err: any) {
-      setError(err.message || 'Bir hata oluştu');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
     } finally {
       setLoading(false);
     }
@@ -87,14 +91,11 @@ export function ProfileSettings({ user }: ProfileSettingsProps) {
       });
 
       if (response.ok) {
-        // Redirect to login and refresh
         router.push('/login');
         router.refresh();
-      } else {
-        console.error('Çıkış başarısız oldu');
       }
     } catch (err) {
-      console.error('Çıkış hatası:', err);
+      setError('Çıkış yapılırken bir hata oluştu');
     }
   };
 
@@ -107,7 +108,6 @@ export function ProfileSettings({ user }: ProfileSettingsProps) {
         </p>
       </div>
 
-      {/* User Information */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -141,7 +141,6 @@ export function ProfileSettings({ user }: ProfileSettingsProps) {
         </CardContent>
       </Card>
 
-      {/* Password Change */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -214,7 +213,6 @@ export function ProfileSettings({ user }: ProfileSettingsProps) {
         </CardContent>
       </Card>
 
-      {/* Sign Out */}
       <Card className="border-red-200">
         <CardHeader>
           <CardTitle className="text-red-900">Oturum Yönetimi</CardTitle>

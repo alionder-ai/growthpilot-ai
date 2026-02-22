@@ -37,7 +37,7 @@ GrowthPilot AI, dijital pazarlama danışmanlarının müşteri portföylerini v
     - Policy test senaryoları yaz
     - _Requirements: 1.4, 12.13, 15.3_
   
-  - [ ] 2.5 Veritabanı şeması için property test yaz
+  - [x] 2.5 Veritabanı şeması için property test yaz
     - **Property 11: Database Schema Completeness**
     - **Validates: Requirements 5.1-5.4, 12.1-12.11**
 

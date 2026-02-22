@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 
+import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -13,9 +13,9 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { isValidEmail } from '@/lib/utils/validation';
+
 import { checkRateLimit, recordAttempt, getTimeUntilReset } from '@/lib/utils/rate-limit';
+import { isValidEmail } from '@/lib/utils/validation';
 
 export function LoginForm() {
   const router = useRouter();

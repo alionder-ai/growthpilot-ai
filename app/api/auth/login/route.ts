@@ -23,11 +23,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json() as LoginRequestBody;
     const { email, password, rememberMe = false } = body;
 
-    // Extract request metadata for audit logging
     const ipAddress = getIpAddress(request.headers);
     const userAgent = getUserAgent(request.headers);
 
-    // Validate required fields
     if (!email || !password) {
       await logLoginFailed(email || 'unknown', 'Missing credentials', ipAddress, userAgent);
       return NextResponse.json(
@@ -36,12 +34,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create server-side Supabase client with cookie handling
     const cookieStore = await cookies();
-    
-    // Set cookie maxAge based on rememberMe
-    // If rememberMe is true: 7 days, otherwise: session cookie (no maxAge)
-    const cookieMaxAge = rememberMe ? 60 * 60 * 24 * 7 : undefined; // 7 days or session
+    const cookieMaxAge = rememberMe ? 60 * 60 * 24 * 7 : undefined;
     
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -52,30 +46,26 @@ export async function POST(request: NextRequest) {
             return cookieStore.get(name)?.value;
           },
           set(name: string, value: string, options: CookieOptions) {
-            // If rememberMe is true, set maxAge to 7 days
-            // If rememberMe is false, don't set maxAge (session cookie)
-            const updatedOptions = rememberMe 
-              ? { ...options, maxAge: cookieMaxAge }
-              : { ...options, maxAge: undefined };
+            const updatedOptions = {
+              ...options,
+              maxAge: cookieMaxAge,
+            };
             cookieStore.set(name, value, updatedOptions);
           },
           remove(name: string, options: CookieOptions) {
-            cookieStore.set(name, '', options);
+            cookieStore.set(name, '', { ...options, maxAge: 0 });
           },
         },
       }
     );
 
-    // Attempt to sign in using server-side client
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
-      // Log failed login attempt
       await logLoginFailed(email, error.message, ipAddress, userAgent);
-      
       return NextResponse.json(
         { error: getAuthErrorMessage(error) },
         { status: 401 }
@@ -90,7 +80,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Log successful login
     await logLoginSuccess(data.user.id, email, ipAddress, userAgent);
 
     return NextResponse.json({
@@ -105,7 +94,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Login error:', error);
     return NextResponse.json(
       { error: 'Bir hata oluştu. Lütfen tekrar deneyin' },
       { status: 500 }
