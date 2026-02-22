@@ -8,13 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuthContext } from '@/lib/contexts/AuthContext';
-import { getAuthErrorMessage } from '@/lib/supabase/auth';
 import { isValidEmail, isValidPassword } from '@/lib/utils/validation';
 
 export function SignupForm() {
   const router = useRouter();
-  const { signUp } = useAuthContext();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
@@ -49,10 +46,32 @@ export function SignupForm() {
     setLoading(true);
 
     try {
-      await signUp({ email, password });
-      router.push('/dashboard');
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Kayıt başarısız oldu');
+        return;
+      }
+
+      // Show success message about email confirmation
+      if (data.message) {
+        setError(''); // Clear any previous errors
+        // You might want to show a success message instead
+        alert(data.message);
+      }
+
+      // Redirect to login page
+      router.push('/login');
     } catch (err) {
-      setError(getAuthErrorMessage(err));
+      setError('Bir hata oluştu. Lütfen tekrar deneyin');
     } finally {
       setLoading(false);
     }

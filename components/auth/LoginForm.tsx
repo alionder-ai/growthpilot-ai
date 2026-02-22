@@ -13,14 +13,11 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuthContext } from '@/lib/contexts/AuthContext';
-import { getAuthErrorMessage } from '@/lib/supabase/auth';
 import { isValidEmail } from '@/lib/utils/validation';
 import { checkRateLimit, recordAttempt, getTimeUntilReset } from '@/lib/utils/rate-limit';
 
 export function LoginForm() {
   const router = useRouter();
-  const { signIn } = useAuthContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -53,11 +50,28 @@ export function LoginForm() {
     setLoading(true);
 
     try {
-      await signIn({ email, password });
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        recordAttempt(rateLimitKey);
+        setError(data.error || 'Giriş başarısız oldu');
+        return;
+      }
+
+      // Successful login - redirect to dashboard
       router.push('/dashboard');
+      router.refresh(); // Refresh to update server components
     } catch (err: any) {
       recordAttempt(rateLimitKey);
-      setError(getAuthErrorMessage(err));
+      setError('Bir hata oluştu. Lütfen tekrar deneyin');
     } finally {
       setLoading(false);
     }
