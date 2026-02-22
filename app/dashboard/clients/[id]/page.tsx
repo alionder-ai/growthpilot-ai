@@ -42,15 +42,22 @@ export default function ClientDetailPage() {
   };
 
   const handleConnectMeta = () => {
+    console.log('[CLIENT_DETAIL] Meta bağlantısı başlatılıyor, client:', client);
+    console.log('[CLIENT_DETAIL] Client ID:', client?.id);
+    
     if (!client?.id) {
       setError('Müşteri ID bulunamadı');
+      console.error('[CLIENT_DETAIL] Client ID bulunamadı!');
       return;
     }
 
     setConnecting(true);
     setError(null);
 
-    window.location.href = `/api/meta/connect?clientId=${client.id}`;
+    const connectUrl = `/api/meta/connect?clientId=${client.id}`;
+    console.log('[CLIENT_DETAIL] Yönlendiriliyor:', connectUrl);
+    
+    window.location.href = connectUrl;
   };
 
   if (loading) {
@@ -166,7 +173,7 @@ export default function ClientDetailPage() {
 
               <Button 
                 onClick={handleConnectMeta} 
-                disabled={connecting}
+                disabled={connecting || loading || !client}
                 className="w-full"
               >
                 {connecting ? (
