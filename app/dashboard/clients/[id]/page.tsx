@@ -1,11 +1,19 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Client } from '@/lib/types';
+
+interface Campaign {
+  campaign_id: string;
+  campaign_name: string;
+  status: string;
+  meta_campaign_id: string;
+  last_synced_at: string;
+}
 
 export default function ClientDetailPage() {
   const params = useParams();
@@ -15,9 +23,26 @@ export default function ClientDetailPage() {
   const clientId = Array.isArray(rawId) ? rawId[0] : rawId;
 
   const [client, setClient] = useState<Client | null>(null);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const errorParam = urlParams.get('error');
+    
+    if (success === 'meta_connected') {
+      setSuccessMessage('Meta hesabı başarıyla bağlandı!');
+      setTimeout(() => setSuccessMessage(null), 5000);
+    }
+    if (errorParam) {
+      setError(`Meta bağlantı hatası: ${errorParam}`);
+    }
+  }, []);
 
   const fetchClient = useCallback(async () => {
     if (!clientId) {
@@ -51,9 +76,30 @@ export default function ClientDetailPage() {
     }
   }, [clientId]);
 
+  const fetchCampaigns = useCallback(async () => {
+    if (!clientId) return;
+
+    try {
+      const response = await fetch(`/api/campaigns?clientId=${clientId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCampaigns(data.campaigns || []);
+      }
+    } catch (err) {
+      console.error('Kampanyalar yüklenemedi:', err);
+    }
+  }, [clientId]);
+
   useEffect(() => {
     fetchClient();
   }, [fetchClient]);
+
+  useEffect(() => {
+    if (client?.meta_connected) {
+      fetchCampaigns();
+    }
+  }, [client?.meta_connected, fetchCampaigns]);
 
   const handleConnectMeta = () => {
     if (!client?.client_id) {
@@ -65,6 +111,41 @@ export default function ClientDetailPage() {
     setError(null);
 
     window.location.href = `/api/meta/connect?clientId=${client.client_id}`;
+  };
+
+  const handleSyncData = async () => {
+    if (!client?.meta_connected) {
+      setError('Önce Meta hesabını bağlamalısınız');
+      return;
+    }
+
+    setSyncing(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const response = await fetch('/api/campaigns/sync', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Senkronizasyon başarısız oldu');
+      }
+
+      setSuccessMessage(
+        `Senkronizasyon tamamlandı! ${data.stats.campaignsProcessed} kampanya, ${data.stats.adsProcessed} reklam işlendi.`
+      );
+      
+      await fetchCampaigns();
+      
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Senkronizasyon hatası');
+    } finally {
+      setSyncing(false);
+    }
   };
 
   if (loading) {
@@ -111,6 +192,12 @@ export default function ClientDetailPage() {
           <p className="text-gray-600 mt-1">Müşteri Detayları</p>
         </div>
       </div>
+
+      {successMessage && (
+        <Card className="p-4 bg-green-50 border-green-200">
+          <p className="text-sm text-green-800">{successMessage}</p>
+        </Card>
+      )}
 
       {error && (
         <Card className="p-4 bg-red-50 border-red-200">
@@ -167,12 +254,29 @@ export default function ClientDetailPage() {
               {client.meta_connected_at && (
                 <div>
                   <label className="text-sm font-medium text-gray-500">Bağlanma Tarihi</label>
-                  <p className="text-gray-900">{new Date(client.meta_connected_at).toLocaleDateString('tr-TR')}</p>
+                  <p className="text-gray-900">
+                    {new Date(client.meta_connected_at).toLocaleDateString('tr-TR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric'
+                    })}
+                  </p>
                 </div>
               )}
 
-              <Button variant="outline" className="w-full" disabled>
-                Bağlantıyı Yenile
+              <Button 
+                onClick={handleSyncData} 
+                disabled={syncing}
+                className="w-full"
+              >
+                {syncing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Senkronize Ediliyor...
+                  </>
+                ) : (
+                  'Verileri Senkronize Et'
+                )}
               </Button>
             </div>
           ) : (
@@ -188,7 +292,7 @@ export default function ClientDetailPage() {
 
               <Button 
                 onClick={handleConnectMeta} 
-                disabled={connecting || loading || !client}
+                disabled={connecting || loading}
                 className="w-full"
               >
                 {connecting ? (
@@ -211,11 +315,58 @@ export default function ClientDetailPage() {
       </div>
 
       <Card className="p-6">
-        <h2 className="text-xl font-semibold mb-4">Kampanya Verileri</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Kampanya Verileri</h2>
+          {campaigns.length > 0 && (
+            <span className="text-sm text-gray-500">{campaigns.length} kampanya</span>
+          )}
+        </div>
+        
         {client.meta_connected ? (
-          <div className="text-center py-8 text-gray-600">
-            Kampanya verileri yakında burada görüntülenecek...
-          </div>
+          campaigns.length > 0 ? (
+            <div className="space-y-3">
+              {campaigns.map((campaign) => (
+                <div 
+                  key={campaign.campaign_id}
+                  className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium text-gray-900">{campaign.campaign_name}</h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Durum: <span className="capitalize">{campaign.status}</span>
+                      </p>
+                    </div>
+                    {campaign.last_synced_at && (
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">Son Senkronizasyon</p>
+                        <p className="text-sm text-gray-700">
+                          {new Date(campaign.last_synced_at).toLocaleDateString('tr-TR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-600 mb-4">
+                Henüz kampanya verisi yok. Verileri senkronize etmek için yukarıdaki butona tıklayın.
+              </p>
+              <Button 
+                onClick={handleSyncData} 
+                disabled={syncing}
+                variant="outline"
+              >
+                {syncing ? 'Senkronize Ediliyor...' : 'Şimdi Senkronize Et'}
+              </Button>
+            </div>
+          )
         ) : (
           <div className="text-center py-8 text-gray-500">
             Kampanya verilerini görmek için önce Meta Ads hesabını bağlayın.
