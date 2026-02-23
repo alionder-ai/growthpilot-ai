@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import cache, { CACHE_TTL, generateCacheKey } from '@/lib/utils/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +21,8 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
 
+    console.log('[RECOMMENDATIONS API] Starting request');
+
     // Get authenticated user
     const {
       data: { user },
@@ -29,11 +30,14 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
+      console.error('[RECOMMENDATIONS API] Auth error:', authError);
       return NextResponse.json(
         { error: 'Yetkisiz erişim' },
         { status: 401 }
       );
     }
+
+    console.log('[RECOMMENDATIONS API] User authenticated:', user.id);
 
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
@@ -42,22 +46,9 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const limit = parseInt(searchParams.get('limit') || '10', 10);
 
-    // Generate cache key
-    const cacheKey = generateCacheKey('ai-recommendations', {
-      userId: user.id,
-      clientId: clientId || 'all',
-      type: type || 'all',
-      status: status || 'all',
-      limit
-    });
+    console.log('[RECOMMENDATIONS API] Query params:', { clientId, type, status, limit });
 
-    // Check cache
-    const cachedData = cache.get<any[]>(cacheKey);
-    if (cachedData) {
-      return NextResponse.json(cachedData);
-    }
-
-    // Build query - Use LEFT JOIN instead of INNER JOIN to avoid RLS issues
+    // Build query
     let query = supabase
       .from('ai_recommendations')
       .select(`
@@ -86,10 +77,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Execute query
+    console.log('[RECOMMENDATIONS API] Executing query...');
     const { data: recommendations, error: fetchError } = await query;
 
     if (fetchError) {
-      console.error('[RECOMMENDATIONS API] Error fetching recommendations:', fetchError);
+      console.error('[RECOMMENDATIONS API] Fetch error:', fetchError);
       return NextResponse.json(
         { error: 'Öneriler alınırken hata oluştu', details: fetchError.message },
         { status: 500 }
@@ -98,17 +90,14 @@ export async function GET(request: NextRequest) {
 
     console.log('[RECOMMENDATIONS API] Found', recommendations?.length || 0, 'recommendations');
 
-    // RLS policy already filters by user's clients, so we don't need additional filtering
+    // RLS policy already filters by user's clients
     const result = recommendations || [];
-
-    // Cache the result
-    cache.set(cacheKey, result, CACHE_TTL.AI_RECOMMENDATIONS);
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error in recommendations fetch:', error);
+    console.error('[RECOMMENDATIONS API] Unexpected error:', error);
     return NextResponse.json(
-      { error: 'Beklenmeyen bir hata oluştu' },
+      { error: 'Beklenmeyen bir hata oluştu', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
