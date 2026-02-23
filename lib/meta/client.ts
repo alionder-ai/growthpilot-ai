@@ -101,6 +101,15 @@ export class MetaAPIClient {
       url.searchParams.append(key, value);
     });
 
+    // Log the request (without token for security)
+    const urlForLog = new URL(url.toString());
+    urlForLog.searchParams.set('access_token', '[REDACTED]');
+    console.log('[META CLIENT] API İsteği:', {
+      endpoint,
+      params,
+      fullUrl: urlForLog.toString(),
+    });
+
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -112,9 +121,30 @@ export class MetaAPIClient {
           },
         });
 
+        console.log('[META CLIENT] API Yanıt Durumu:', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+        });
+
         const data: MetaAPIResponse<T> = await response.json();
 
+        console.log('[META CLIENT] API Yanıt Verisi:', {
+          hasData: !!data.data,
+          hasError: !!data.error,
+          dataType: Array.isArray(data.data) ? 'array' : typeof data.data,
+          dataLength: Array.isArray(data.data) ? data.data.length : 'N/A',
+          rawData: JSON.stringify(data).substring(0, 500), // First 500 chars
+        });
+
         if (data.error) {
+          console.error('[META CLIENT] API Hatası:', {
+            code: data.error.code,
+            type: data.error.type,
+            message: data.error.message,
+            subcode: data.error.error_subcode,
+          });
+
           // Handle rate limiting
           if (data.error.code === 17 || data.error.code === 32) {
             throw new Error('RATE_LIMIT');
@@ -131,6 +161,13 @@ export class MetaAPIClient {
         return data.data as T;
       } catch (error) {
         lastError = error as Error;
+
+        console.error('[META CLIENT] İstek Hatası:', {
+          attempt: attempt + 1,
+          maxRetries: MAX_RETRIES,
+          error: lastError.message,
+          willRetry: attempt < MAX_RETRIES - 1 && lastError.message !== 'AUTH_ERROR',
+        });
 
         // Don't retry on authentication errors
         if (lastError.message === 'AUTH_ERROR') {
@@ -152,14 +189,25 @@ export class MetaAPIClient {
    * Fetches all campaigns for an ad account
    */
   async getCampaigns(adAccountId: string): Promise<Campaign[]> {
+    console.log('[META CLIENT] getCampaigns çağrıldı:', {
+      adAccountId,
+      fullAccountId: `act_${adAccountId}`,
+    });
+
     const campaigns = await this.makeRequest<Campaign[]>(
       `/act_${adAccountId}/campaigns`,
       {
         fields: 'id,name,status,objective,created_time,updated_time',
+        limit: '100', // Ensure we get all campaigns
       }
     );
 
-    return campaigns;
+    console.log('[META CLIENT] getCampaigns yanıtı:', {
+      campaignCount: campaigns?.length || 0,
+      campaigns: campaigns || [],
+    });
+
+    return campaigns || [];
   }
 
   /**
