@@ -106,15 +106,32 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const { error: tokenError } = await supabase
+    const { data: existingToken } = await supabase
       .from('meta_tokens')
-      .upsert({
-        user_id: userId,
-        encrypted_token: encryptedToken,
-        expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
-      }, {
-        onConflict: 'user_id'
-      });
+      .select('user_id')
+      .eq('user_id', userId)
+      .single();
+
+    let tokenError;
+    if (existingToken) {
+      const { error } = await supabase
+        .from('meta_tokens')
+        .update({
+          encrypted_token: encryptedToken,
+          expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+        })
+        .eq('user_id', userId);
+      tokenError = error;
+    } else {
+      const { error } = await supabase
+        .from('meta_tokens')
+        .insert({
+          user_id: userId,
+          encrypted_token: encryptedToken,
+          expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+      tokenError = error;
+    }
 
     if (tokenError) {
       return NextResponse.redirect(
