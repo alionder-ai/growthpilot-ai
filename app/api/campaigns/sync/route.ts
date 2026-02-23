@@ -6,9 +6,11 @@ import { syncMetaData } from '@/lib/meta/sync';
 
 export async function POST() {
   let userId: string | undefined;
+  let currentStep = 'INITIALIZATION';
 
   try {
-    console.log('[SYNC API] Starting sync request...');
+    console.log('[SYNC API] ========== SYNC BAŞLADI ==========');
+    console.log('[SYNC API] ADIM 0: İstek başlatılıyor...');
     
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -16,73 +18,67 @@ export async function POST() {
     console.log('[SYNC API] Supabase Bağlantı Kontrolü:', {
       url: !!supabaseUrl,
       key: !!supabaseKey,
-      urlValue: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'undefined',
       keyType: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SERVICE_ROLE' : 'ANON',
     });
 
     if (!supabaseUrl || !supabaseKey) {
-      console.error('[SYNC API] Missing Supabase credentials');
+      console.error('[SYNC API] HATA: Supabase credentials eksik');
       return NextResponse.json(
-        { error: 'Supabase bağlantı bilgileri eksik' },
+        { error: 'Supabase bağlantı bilgileri eksik', step: 'ENV_CHECK' },
         { status: 500 }
       );
     }
 
     const cookieStore = await cookies();
-
-    const supabase = createServerClient(
-      supabaseUrl,
-      supabaseKey,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: any) {
-            try {
-              cookieStore.set(name, value, options);
-            } catch (error) {
-              console.error('[SYNC API] Cookie set error:', error);
-            }
-          },
-          remove(name: string, options: any) {
-            try {
-              cookieStore.set(name, '', options);
-            } catch (error) {
-              console.error('[SYNC API] Cookie remove error:', error);
-            }
-          },
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
         },
-      }
-    );
+        set(name: string, value: string, options: any) {
+          try {
+            cookieStore.set(name, value, options);
+          } catch (error) {
+            console.error('[SYNC API] Cookie set error:', error);
+          }
+        },
+        remove(name: string, options: any) {
+          try {
+            cookieStore.set(name, '', options);
+          } catch (error) {
+            console.error('[SYNC API] Cookie remove error:', error);
+          }
+        },
+      },
+    });
 
-    console.log('[SYNC API] Supabase client created with cookies');
+    console.log('[SYNC API] ✓ Supabase client oluşturuldu');
     
+    currentStep = 'AUTH';
+    console.log('[SYNC API] ADIM 1: Kullanıcı kimlik doğrulaması yapılıyor...');
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError) {
-      console.error('[SYNC API] Auth error:', {
-        message: authError.message,
-        status: authError.status,
-        name: authError.name,
-      });
+      console.error('[SYNC API] HATA (AUTH):', authError);
       return NextResponse.json(
-        { error: 'Kimlik doğrulama hatası', details: authError.message },
+        { error: 'Kimlik doğrulama hatası', details: authError.message, step: 'AUTH' },
         { status: 401 }
       );
     }
 
     if (!user) {
-      console.error('[SYNC API] No user found in session');
+      console.error('[SYNC API] HATA (AUTH): Kullanıcı bulunamadı');
       return NextResponse.json(
-        { error: 'Oturum bulunamadı. Lütfen tekrar giriş yapın.' },
+        { error: 'Oturum bulunamadı', step: 'AUTH' },
         { status: 401 }
       );
     }
 
     userId = user.id;
-    console.log('[SYNC API] User authenticated:', userId);
+    console.log('[SYNC API] ✓ Kullanıcı doğrulandı:', userId);
 
+    currentStep = 'TOKEN_FETCH';
+    console.log('[SYNC API] ADIM 2: Supabase\'den Meta token çekiliyor...');
     const { data: token, error: tokenError } = await supabase
       .from('meta_tokens')
       .select('encrypted_token, expires_at')
@@ -90,45 +86,36 @@ export async function POST() {
       .single();
 
     if (tokenError) {
-      console.error('[SYNC API] Token fetch error:', tokenError);
+      console.error('[SYNC API] HATA (TOKEN_FETCH):', tokenError);
       return NextResponse.json(
-        { 
-          error: 'Meta token alınamadı', 
-          details: tokenError.message 
-        },
+        { error: 'Meta token alınamadı', details: tokenError.message, step: 'TOKEN_FETCH' },
         { status: 400 }
       );
     }
 
-    if (!token) {
-      console.error('[SYNC API] No token found for user:', userId);
+    if (!token || !token.encrypted_token) {
+      console.error('[SYNC API] HATA (TOKEN_FETCH): Token bulunamadı veya boş');
       return NextResponse.json(
-        { error: 'Meta hesabı bağlı değil. Lütfen önce Meta hesabınızı bağlayın.' },
+        { error: 'Meta token bulunamadı', step: 'TOKEN_FETCH' },
         { status: 400 }
       );
     }
 
-    if (!token.encrypted_token) {
-      console.error('[SYNC API] Token is null or undefined');
-      return NextResponse.json(
-        { error: 'Meta access token bulunamadı. Lütfen yeniden bağlanın.' },
-        { status: 400 }
-      );
-    }
-
-    console.log('[SYNC API] Token found, checking expiry...');
+    console.log('[SYNC API] ✓ Token bulundu');
 
     const expiresAt = new Date(token.expires_at);
     if (expiresAt < new Date()) {
-      console.error('[SYNC API] Token expired:', expiresAt);
+      console.error('[SYNC API] HATA (TOKEN_FETCH): Token süresi dolmuş');
       return NextResponse.json(
-        { error: 'Meta erişim tokenı süresi dolmuş. Lütfen yeniden bağlanın.' },
+        { error: 'Token süresi dolmuş', step: 'TOKEN_FETCH' },
         { status: 400 }
       );
     }
 
-    console.log('[SYNC API] Token valid, fetching client ad_account_id...');
+    console.log('[SYNC API] ✓ Token geçerli');
 
+    currentStep = 'AD_ACCOUNT_FETCH';
+    console.log('[SYNC API] ADIM 3: Ad Account ID çekiliyor...');
     const { data: clients, error: clientsError } = await supabase
       .from('clients')
       .select('meta_ad_account_id')
@@ -138,35 +125,31 @@ export async function POST() {
       .limit(1);
 
     if (clientsError) {
-      console.error('[SYNC API] Clients fetch error:', clientsError);
+      console.error('[SYNC API] HATA (AD_ACCOUNT_FETCH):', clientsError);
       return NextResponse.json(
-        { 
-          error: 'Müşteri bilgileri alınamadı', 
-          details: clientsError.message 
-        },
+        { error: 'Müşteri bilgileri alınamadı', details: clientsError.message, step: 'AD_ACCOUNT_FETCH' },
         { status: 500 }
       );
     }
 
     if (!clients || clients.length === 0) {
-      console.error('[SYNC API] No connected clients found');
+      console.error('[SYNC API] HATA (AD_ACCOUNT_FETCH): Bağlı müşteri yok');
       return NextResponse.json(
-        { error: 'Meta hesabı bağlı müşteri bulunamadı. Lütfen önce bir müşteriye Meta hesabı bağlayın.' },
+        { error: 'Meta hesabı bağlı müşteri bulunamadı', step: 'AD_ACCOUNT_FETCH' },
         { status: 400 }
       );
     }
 
     const adAccountId = clients[0].meta_ad_account_id;
-    
     if (!adAccountId) {
-      console.error('[SYNC API] Ad account ID is null');
+      console.error('[SYNC API] HATA (AD_ACCOUNT_FETCH): Ad account ID null');
       return NextResponse.json(
-        { error: 'Reklam hesabı ID bulunamadı. Lütfen Meta hesabını yeniden bağlayın.' },
+        { error: 'Reklam hesabı ID bulunamadı', step: 'AD_ACCOUNT_FETCH' },
         { status: 400 }
       );
     }
 
-    console.log('[SYNC API] Ad account ID found:', adAccountId);
+    console.log('[SYNC API] ✓ Ad Account ID bulundu:', adAccountId);
 
     const endDate = new Date();
     const startDate = new Date();
@@ -177,8 +160,16 @@ export async function POST() {
       until: endDate.toISOString().split('T')[0],
     };
 
-    console.log('[SYNC API] Date range:', dateRange);
-    console.log('[SYNC API] Starting Meta data sync...');
+    console.log('[SYNC API] ✓ Tarih aralığı:', dateRange);
+
+    currentStep = 'META_SYNC';
+    console.log('[SYNC API] ADIM 4: Meta Graph API\'den veri çekiliyor...');
+    console.log('[SYNC API] syncMetaData parametreleri:', {
+      userId,
+      adAccountId,
+      dateRange,
+      hasToken: !!token.encrypted_token,
+    });
 
     const result = await syncMetaData(
       supabase,
@@ -188,7 +179,8 @@ export async function POST() {
       dateRange
     );
 
-    console.log('[SYNC API] Sync completed:', {
+    console.log('[SYNC API] ✓ syncMetaData tamamlandı');
+    console.log('[SYNC API] Sonuç:', {
       success: result.success,
       campaignsProcessed: result.campaignsProcessed,
       adsProcessed: result.adsProcessed,
@@ -197,14 +189,9 @@ export async function POST() {
     });
 
     if (!result.success) {
-      console.error('[SYNC API] ========== SYNC FAILED ==========');
-      console.error('[SYNC API] Error count:', result.errors.length);
-      console.error('[SYNC API] All errors:', JSON.stringify(result.errors, null, 2));
-      console.error('[SYNC API] Stats:', {
-        campaignsProcessed: result.campaignsProcessed,
-        adsProcessed: result.adsProcessed,
-        metricsStored: result.metricsStored,
-      });
+      console.error('[SYNC API] ========== SYNC BAŞARISIZ ==========');
+      console.error('[SYNC API] Hata sayısı:', result.errors.length);
+      console.error('[SYNC API] Hatalar:', JSON.stringify(result.errors, null, 2));
       console.error('[SYNC API] ====================================');
       
       return NextResponse.json(
@@ -212,6 +199,7 @@ export async function POST() {
           error: 'Senkronizasyon sırasında hatalar oluştu',
           errorDetails: result.errors.join(' | '),
           allErrors: result.errors,
+          step: 'META_SYNC',
           stats: {
             campaignsProcessed: result.campaignsProcessed,
             adsProcessed: result.adsProcessed,
@@ -222,6 +210,7 @@ export async function POST() {
       );
     }
 
+    console.log('[SYNC API] ========== SYNC BAŞARILI ==========');
     return NextResponse.json({
       success: true,
       message: 'Senkronizasyon başarıyla tamamlandı',
@@ -233,17 +222,19 @@ export async function POST() {
     });
 
   } catch (error) {
-    console.error('[SYNC API] ========== CRITICAL ERROR ==========');
-    console.error('[SYNC API] Error type:', error instanceof Error ? error.constructor.name : typeof error);
-    console.error('[SYNC API] Error message:', error instanceof Error ? error.message : String(error));
-    console.error('[SYNC API] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('[SYNC API] ========== KRİTİK HATA ==========');
+    console.error('[SYNC API] Hata adımı:', currentStep);
+    console.error('[SYNC API] Hata tipi:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('[SYNC API] Hata mesajı:', error instanceof Error ? error.message : String(error));
+    console.error('[SYNC API] Stack trace:', error instanceof Error ? error.stack : 'Yok');
     console.error('[SYNC API] User ID:', userId);
-    console.error('[SYNC API] =======================================');
+    console.error('[SYNC API] ====================================');
 
     return NextResponse.json(
       { 
         error: error instanceof Error ? error.message : 'Beklenmeyen bir hata oluştu',
         errorType: error instanceof Error ? error.constructor.name : typeof error,
+        step: currentStep,
         details: error instanceof Error ? error.stack : String(error),
       },
       { status: 500 }

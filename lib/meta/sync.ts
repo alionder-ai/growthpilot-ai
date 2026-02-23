@@ -73,46 +73,92 @@ export async function syncMetaData(
   };
 
   try {
+    console.log('[SYNC META] ========== syncMetaData BAŞLADI ==========');
+    console.log('[SYNC META] Parametreler:', {
+      userId,
+      adAccountId,
+      dateRange,
+      hasToken: !!encryptedAccessToken,
+    });
+
     // Create Meta API client
+    console.log('[SYNC META] ADIM 1: Meta API client oluşturuluyor...');
     const metaClient = createMetaAPIClient(encryptedAccessToken);
+    console.log('[SYNC META] ✓ Meta API client oluşturuldu');
 
     // Get all clients for this user
+    console.log('[SYNC META] ADIM 2: Kullanıcının müşterileri çekiliyor...');
     const { data: clients, error: clientsError } = await supabase
       .from('clients')
       .select('client_id')
       .eq('user_id', userId);
 
     if (clientsError) {
+      console.error('[SYNC META] HATA (CLIENTS_FETCH):', clientsError);
       result.errors.push(`Müşteriler alınamadı: ${clientsError.message}`);
       result.success = false;
       return result;
     }
 
     if (!clients || clients.length === 0) {
-      return result; // No clients to sync
+      console.log('[SYNC META] ⚠ Müşteri bulunamadı, sync atlanıyor');
+      return result;
     }
 
-    // Fetch campaigns from Meta API
-    const metaCampaigns = await metaClient.getCampaigns(adAccountId);
+    console.log('[SYNC META] ✓ Müşteriler bulundu:', clients.length);
 
-    for (const metaCampaign of metaCampaigns) {
+    // Fetch campaigns from Meta API
+    console.log('[SYNC META] ADIM 3: Meta Graph API\'den kampanyalar çekiliyor...');
+    console.log('[SYNC META] Ad Account ID:', adAccountId);
+    
+    let metaCampaigns: any[];
+    try {
+      metaCampaigns = await metaClient.getCampaigns(adAccountId);
+      console.log('[SYNC META] ✓ Meta API\'den kampanyalar alındı:', metaCampaigns.length);
+    } catch (metaError: any) {
+      console.error('[SYNC META] ========== META API HATASI ==========');
+      console.error('[SYNC META] Hata tipi:', metaError?.constructor?.name || typeof metaError);
+      console.error('[SYNC META] Hata mesajı:', metaError?.message || String(metaError));
+      console.error('[SYNC META] Response data:', JSON.stringify(metaError?.response?.data || 'Yok'));
+      console.error('[SYNC META] Response status:', metaError?.response?.status || 'Yok');
+      console.error('[SYNC META] Stack:', metaError?.stack || 'Yok');
+      console.error('[SYNC META] ====================================');
+      
+      result.errors.push(`Meta API hatası: ${metaError?.message || 'Bilinmeyen hata'}`);
+      result.success = false;
+      return result;
+    }
+
+    console.log('[SYNC META] ADIM 4: Kampanyalar işleniyor...');
+    for (let i = 0; i < metaCampaigns.length; i++) {
+      const metaCampaign = metaCampaigns[i];
+      console.log(`[SYNC META] Kampanya ${i + 1}/${metaCampaigns.length}: ${metaCampaign.name} (ID: ${metaCampaign.id})`);
+      
       try {
         // Check if campaign exists in database
-        const { data: existingCampaign } = await supabase
+        console.log('[SYNC META]   → Veritabanında kontrol ediliyor...');
+        const { data: existingCampaign, error: checkError } = await supabase
           .from('campaigns')
           .select('campaign_id, client_id')
           .eq('meta_campaign_id', metaCampaign.id)
           .single();
+
+        if (checkError && checkError.code !== 'PGRST116') {
+          console.error('[SYNC META]   ✗ Kampanya kontrol hatası:', checkError);
+          result.errors.push(`Kampanya kontrol hatası: ${metaCampaign.name}`);
+          continue;
+        }
 
         let campaignId: string;
         let clientId: string;
 
         if (existingCampaign) {
           // Update existing campaign
+          console.log('[SYNC META]   → Mevcut kampanya güncelleniyor...');
           campaignId = existingCampaign.campaign_id;
           clientId = existingCampaign.client_id;
 
-          await supabase
+          const { error: updateError } = await supabase
             .from('campaigns')
             .update({
               campaign_name: metaCampaign.name,
@@ -121,8 +167,16 @@ export async function syncMetaData(
               updated_at: new Date().toISOString(),
             })
             .eq('campaign_id', campaignId);
+
+          if (updateError) {
+            console.error('[SYNC META]   ✗ Kampanya güncelleme hatası:', updateError);
+            result.errors.push(`Kampanya güncellenemedi: ${metaCampaign.name}`);
+            continue;
+          }
+          console.log('[SYNC META]   ✓ Kampanya güncellendi');
         } else {
-          // Create new campaign (assign to first client for now)
+          // Create new campaign
+          console.log('[SYNC META]   → Yeni kampanya oluşturuluyor...');
           clientId = clients[0].client_id;
 
           const { data: newCampaign, error: createError } = await supabase
@@ -137,18 +191,35 @@ export async function syncMetaData(
             .select('campaign_id')
             .single();
 
-          if (createError || !newCampaign) {
+          if (createError) {
+            console.error('[SYNC META]   ========== SUPABASE INSERT HATASI ==========');
+            console.error('[SYNC META]   Tablo: campaigns');
+            console.error('[SYNC META]   Hata kodu:', createError.code);
+            console.error('[SYNC META]   Hata mesajı:', createError.message);
+            console.error('[SYNC META]   Hata detayları:', createError.details);
+            console.error('[SYNC META]   Hint:', createError.hint);
+            console.error('[SYNC META]   ====================================');
+            result.errors.push(`Kampanya oluşturulamadı: ${metaCampaign.name} - ${createError.message}`);
+            continue;
+          }
+
+          if (!newCampaign) {
+            console.error('[SYNC META]   ✗ Kampanya oluşturuldu ama veri dönmedi');
             result.errors.push(`Kampanya oluşturulamadı: ${metaCampaign.name}`);
             continue;
           }
 
           campaignId = newCampaign.campaign_id;
+          console.log('[SYNC META]   ✓ Yeni kampanya oluşturuldu');
         }
 
         result.campaignsProcessed++;
+        console.log('[SYNC META]   ✓ Kampanya işlendi');
 
         // Fetch ad sets for this campaign
+        console.log('[SYNC META]   → Reklam setleri çekiliyor...');
         const adSets = await metaClient.getAdSets(metaCampaign.id);
+        console.log(`[SYNC META]   ✓ ${adSets.length} reklam seti bulundu`);
 
         for (const adSet of adSets) {
           try {
@@ -184,7 +255,13 @@ export async function syncMetaData(
                 .select('ad_set_id')
                 .single();
 
-              if (adSetError || !newAdSet) {
+              if (adSetError) {
+                console.error('[SYNC META]     ✗ Reklam seti oluşturma hatası:', adSetError);
+                result.errors.push(`Reklam seti oluşturulamadı: ${adSet.name}`);
+                continue;
+              }
+
+              if (!newAdSet) {
                 result.errors.push(`Reklam seti oluşturulamadı: ${adSet.name}`);
                 continue;
               }
@@ -229,7 +306,13 @@ export async function syncMetaData(
                     .select('ad_id')
                     .single();
 
-                  if (adError || !newAd) {
+                  if (adError) {
+                    console.error('[SYNC META]       ✗ Reklam oluşturma hatası:', adError);
+                    result.errors.push(`Reklam oluşturulamadı: ${ad.name}`);
+                    continue;
+                  }
+
+                  if (!newAd) {
                     result.errors.push(`Reklam oluşturulamadı: ${ad.name}`);
                     continue;
                   }
@@ -257,6 +340,7 @@ export async function syncMetaData(
                     });
 
                   if (metricsError) {
+                    console.error('[SYNC META]       ✗ Metrik kaydetme hatası:', metricsError);
                     result.errors.push(`Metrikler kaydedilemedi: ${ad.name}`);
                   } else {
                     result.metricsStored++;
@@ -283,17 +367,29 @@ export async function syncMetaData(
                   }
                 }
               } catch (adError) {
+                console.error('[SYNC META]       ✗ Reklam işleme hatası:', adError);
                 result.errors.push(`Reklam işlenirken hata: ${ad.name}`);
               }
             }
           } catch (adSetError) {
+            console.error('[SYNC META]     ✗ Reklam seti işleme hatası:', adSetError);
             result.errors.push(`Reklam seti işlenirken hata: ${adSet.name}`);
           }
         }
       } catch (campaignError) {
+        console.error('[SYNC META]   ✗ Kampanya işleme hatası:', campaignError);
         result.errors.push(`Kampanya işlenirken hata: ${metaCampaign.name}`);
       }
     }
+
+    console.log('[SYNC META] ========== syncMetaData TAMAMLANDI ==========');
+    console.log('[SYNC META] Sonuç:', {
+      success: result.success,
+      campaignsProcessed: result.campaignsProcessed,
+      adsProcessed: result.adsProcessed,
+      metricsStored: result.metricsStored,
+      errorCount: result.errors.length,
+    });
 
     // If there were errors, mark as partial success
     if (result.errors.length > 0) {
@@ -302,6 +398,9 @@ export async function syncMetaData(
 
     return result;
   } catch (error) {
+    console.error('[SYNC META] ========== KRİTİK HATA ==========');
+    console.error('[SYNC META] Hata:', error);
+    console.error('[SYNC META] ====================================');
     result.success = false;
     result.errors.push(`Senkronizasyon hatası: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`);
     return result;
