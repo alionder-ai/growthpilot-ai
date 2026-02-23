@@ -23,27 +23,38 @@ interface ActionPlanItem {
  * - Array of 3 action items with priority and expected impact
  */
 export async function POST(request: NextRequest) {
+  console.log('[ACTION PLAN API] ========== REQUEST START ==========');
+  
   try {
+    console.log('[ACTION PLAN API] Step 1: Creating Supabase client...');
     const supabase = await createClient();
+    console.log('[ACTION PLAN API] ✓ Supabase client created');
 
-    // Get authenticated user
+    console.log('[ACTION PLAN API] Step 2: Getting authenticated user...');
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
+      console.error('[ACTION PLAN API] ✗ Auth error:', authError);
       return NextResponse.json(
         { error: 'Yetkisiz erişim' },
         { status: 401 }
       );
     }
 
+    console.log('[ACTION PLAN API] ✓ User authenticated:', user.id);
+
     // Parse request body
+    console.log('[ACTION PLAN API] Step 3: Parsing request body...');
     const body = await request.json();
     const { clientId } = body;
 
+    console.log('[ACTION PLAN API] Client ID:', clientId);
+
     if (!clientId) {
+      console.error('[ACTION PLAN API] ✗ No client ID provided');
       return NextResponse.json(
         { error: 'Müşteri ID gerekli' },
         { status: 400 }
@@ -253,9 +264,14 @@ export async function POST(request: NextRequest) {
       action_plan: actionPlan,
     });
   } catch (error) {
-    console.error('Error in action plan generation:', error);
+    console.error('[ACTION PLAN API] ========== CRITICAL ERROR ==========');
+    console.error('[ACTION PLAN API] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('[ACTION PLAN API] Error message:', error instanceof Error ? error.message : String(error));
+    console.error('[ACTION PLAN API] Stack trace:', error instanceof Error ? error.stack : 'N/A');
+    console.error('[ACTION PLAN API] ========================================');
+    
     return NextResponse.json(
-      { error: 'Beklenmeyen bir hata oluştu' },
+      { error: 'Beklenmeyen bir hata oluştu', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
