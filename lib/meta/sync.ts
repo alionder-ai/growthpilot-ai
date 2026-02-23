@@ -256,8 +256,14 @@ export async function syncMetaData(
                 .single();
 
               if (adSetError) {
-                console.error('[SYNC META]     ✗ Reklam seti oluşturma hatası:', adSetError);
-                result.errors.push(`Reklam seti oluşturulamadı: ${adSet.name}`);
+                console.error('[SYNC META]     ========== AD SET INSERT HATASI ==========');
+                console.error('[SYNC META]     Tablo: ad_sets');
+                console.error('[SYNC META]     Hata kodu:', adSetError.code);
+                console.error('[SYNC META]     Hata mesajı:', adSetError.message);
+                console.error('[SYNC META]     Hata detayları:', adSetError.details);
+                console.error('[SYNC META]     Hint:', adSetError.hint);
+                console.error('[SYNC META]     ====================================');
+                result.errors.push(`Reklam seti oluşturulamadı: ${adSet.name} - ${adSetError.message}`);
                 continue;
               }
 
