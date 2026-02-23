@@ -118,33 +118,47 @@ export async function GET(request: NextRequest) {
     let totalSpendThisMonth = 0;
     let totalSpendToday = 0;
 
-    console.log('[OVERVIEW METRICS] Calculating spend for', campaignIds.length, 'campaigns');
+    console.log('[OVERVIEW METRICS] ========== HESAPLAMA BAŞLADI ==========');
+    console.log('[OVERVIEW METRICS] Toplam kampanya sayısı:', campaignIds.length);
+    console.log('[OVERVIEW METRICS] Aktif kampanya sayısı:', activeCampaigns);
 
     if (campaignIds.length > 0) {
       // Get ad IDs for these campaigns through ad_sets
-      const { data: adSets } = await supabase
+      const { data: adSets, error: adSetsError } = await supabase
         .from('ad_sets')
         .select('ad_set_id, campaign_id')
         .in('campaign_id', campaignIds);
 
-      console.log('[OVERVIEW METRICS] Found', adSets?.length || 0, 'ad sets');
+      if (adSetsError) {
+        console.error('[OVERVIEW METRICS] Ad sets fetch error:', adSetsError);
+      }
+
+      console.log('[OVERVIEW METRICS] Bulunan ad set sayısı:', adSets?.length || 0);
 
       const adSetIds = adSets?.map((as) => as.ad_set_id) || [];
 
       if (adSetIds.length > 0) {
-        const { data: ads } = await supabase
+        const { data: ads, error: adsError } = await supabase
           .from('ads')
           .select('ad_id, ad_set_id')
           .in('ad_set_id', adSetIds);
 
-        console.log('[OVERVIEW METRICS] Found', ads?.length || 0, 'ads');
+        if (adsError) {
+          console.error('[OVERVIEW METRICS] Ads fetch error:', adsError);
+        }
+
+        console.log('[OVERVIEW METRICS] Bulunan reklam sayısı:', ads?.length || 0);
 
         const adIds = ads?.map((a) => a.ad_id) || [];
 
         if (adIds.length > 0) {
           // Get spend for this month
           const monthStartDate = startOfMonth.toISOString().split('T')[0];
-          console.log('[OVERVIEW METRICS] Fetching metrics from', monthStartDate);
+          const todayDate = startOfDay.toISOString().split('T')[0];
+          
+          console.log('[OVERVIEW METRICS] Tarih aralıkları:');
+          console.log('[OVERVIEW METRICS]   - Ay başlangıcı:', monthStartDate);
+          console.log('[OVERVIEW METRICS]   - Bugün:', todayDate);
 
           const { data: monthMetrics, error: monthError } = await supabase
             .from('meta_metrics')
@@ -153,37 +167,55 @@ export async function GET(request: NextRequest) {
             .gte('date', monthStartDate);
 
           if (monthError) {
-            console.error('[OVERVIEW METRICS] Error fetching month metrics:', monthError);
+            console.error('[OVERVIEW METRICS] Bu ay metrikleri fetch hatası:', monthError);
           } else {
-            console.log('[OVERVIEW METRICS] Found', monthMetrics?.length || 0, 'metric records for this month');
+            console.log('[OVERVIEW METRICS] Bu ay için bulunan metrik kayıtları:', monthMetrics?.length || 0);
+            
+            if (monthMetrics && monthMetrics.length > 0) {
+              // Group by date to see distribution
+              const byDate = monthMetrics.reduce((acc, m) => {
+                acc[m.date] = (acc[m.date] || 0) + (parseFloat(String(m.spend)) || 0);
+                return acc;
+              }, {} as Record<string, number>);
+              
+              console.log('[OVERVIEW METRICS] Tarihlere göre harcama dağılımı:', byDate);
+            }
+            
             totalSpendThisMonth = monthMetrics?.reduce(
               (sum, m) => sum + (parseFloat(String(m.spend)) || 0),
               0
             ) || 0;
-            console.log('[OVERVIEW METRICS] Total spend this month:', totalSpendThisMonth);
+            console.log('[OVERVIEW METRICS] Bu ay toplam harcama:', totalSpendThisMonth);
           }
 
           // Get spend for today
-          const todayDate = startOfDay.toISOString().split('T')[0];
           const { data: todayMetrics, error: todayError } = await supabase
             .from('meta_metrics')
-            .select('spend, date')
+            .select('spend, date, ad_id')
             .in('ad_id', adIds)
             .eq('date', todayDate);
 
           if (todayError) {
-            console.error('[OVERVIEW METRICS] Error fetching today metrics:', todayError);
+            console.error('[OVERVIEW METRICS] Bugün metrikleri fetch hatası:', todayError);
           } else {
-            console.log('[OVERVIEW METRICS] Found', todayMetrics?.length || 0, 'metric records for today');
+            console.log('[OVERVIEW METRICS] Bugün için bulunan metrik kayıtları:', todayMetrics?.length || 0);
             totalSpendToday = todayMetrics?.reduce(
               (sum, m) => sum + (parseFloat(String(m.spend)) || 0),
               0
             ) || 0;
-            console.log('[OVERVIEW METRICS] Total spend today:', totalSpendToday);
+            console.log('[OVERVIEW METRICS] Bugün toplam harcama:', totalSpendToday);
           }
+        } else {
+          console.log('[OVERVIEW METRICS] ⚠ Hiç reklam bulunamadı');
         }
+      } else {
+        console.log('[OVERVIEW METRICS] ⚠ Hiç ad set bulunamadı');
       }
+    } else {
+      console.log('[OVERVIEW METRICS] ⚠ Hiç kampanya bulunamadı');
     }
+
+    console.log('[OVERVIEW METRICS] ========== HESAPLAMA BİTTİ ==========');
 
     // Calculate revenue using commission models
     let totalRevenueThisMonth = 0;

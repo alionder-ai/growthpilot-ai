@@ -272,12 +272,20 @@ export default function ActionPlanPage() {
           {!loading && selectedClientId && !actionPlan && !error && (
             <Card className="p-6">
               <div className="text-center py-8">
+                <div className="mb-4">
+                  <svg className="mx-auto h-16 w-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Aksiyon Planı Özelliği Yakında
+                </h3>
                 <p className="text-gray-600 mb-4">
-                  Bu müşteri için henüz aksiyon planı oluşturulmamış.
+                  Bu müşteri için henüz aksiyon planı oluşturulmamış. Aksiyon planı özelliği şu anda geliştirme aşamasındadır.
                 </p>
-                <Button onClick={generateActionPlan} disabled={generating}>
-                  {generating ? 'Oluşturuluyor...' : 'İlk Planı Oluştur'}
-                </Button>
+                <p className="text-sm text-gray-500">
+                  Aksiyon planları, yapay zeka destekli günlük öncelikli görevler içerecektir.
+                </p>
               </div>
             </Card>
           )}
