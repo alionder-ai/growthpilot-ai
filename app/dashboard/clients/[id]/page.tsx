@@ -236,16 +236,35 @@ export default function ClientDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Senkronizasyon başarısız oldu');
+        // Show detailed error with debug info
+        let errorMessage = data.error || 'Senkronizasyon başarısız oldu';
+        
+        if (data.debugInfo) {
+          errorMessage += '\n\n📋 Debug Bilgileri:\n';
+          errorMessage += `• Hesap ID: ${data.debugInfo.checks?.[0] || 'Bilinmiyor'}\n`;
+          if (data.allErrors && data.allErrors.length > 0) {
+            errorMessage += `• Hatalar: ${data.allErrors.join(', ')}`;
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
 
-      setSuccessMessage(
-        `Senkronizasyon tamamlandı! ${data.stats.campaignsProcessed} kampanya, ${data.stats.adsProcessed} reklam işlendi.`
-      );
+      // Show success with debug info
+      let successMsg = `Senkronizasyon tamamlandı! ${data.stats.campaignsProcessed} kampanya, ${data.stats.adsProcessed} reklam işlendi.`;
+      
+      if (data.debugInfo) {
+        successMsg += `\n\n📋 Debug: Hesap ${data.debugInfo.adAccountId}, Tarih: ${data.debugInfo.dateRange?.since} - ${data.debugInfo.dateRange?.until}`;
+        if (data.debugInfo.errors && data.debugInfo.errors.length > 0) {
+          successMsg += `\n⚠️ ${data.debugInfo.errors.length} uyarı var`;
+        }
+      }
+      
+      setSuccessMessage(successMsg);
       
       await fetchCampaigns();
       
-      setTimeout(() => setSuccessMessage(null), 5000);
+      setTimeout(() => setSuccessMessage(null), 10000); // 10 seconds for debug info
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Senkronizasyon hatası');
     } finally {
@@ -300,13 +319,13 @@ export default function ClientDetailPage() {
 
       {successMessage && (
         <Card className="p-4 bg-green-50 border-green-200">
-          <p className="text-sm text-green-800">{successMessage}</p>
+          <p className="text-sm text-green-800 whitespace-pre-line">{successMessage}</p>
         </Card>
       )}
 
       {error && (
         <Card className="p-4 bg-red-50 border-red-200">
-          <p className="text-sm text-red-800">{error}</p>
+          <p className="text-sm text-red-800 whitespace-pre-line">{error}</p>
         </Card>
       )}
 

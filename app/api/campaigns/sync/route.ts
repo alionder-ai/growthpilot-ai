@@ -205,6 +205,15 @@ export async function POST() {
             adsProcessed: result.adsProcessed,
             metricsStored: result.metricsStored,
           },
+          debugInfo: {
+            message: 'Meta API\'den 0 kampanya döndü. Lütfen şunları kontrol edin:',
+            checks: [
+              `Hesap ID: ${adAccountId}`,
+              'Token scope: ads_read yetkisi var mı?',
+              'Hesapta aktif kampanya var mı?',
+              'Meta Business Manager\'da hesap erişimi aktif mi?',
+            ],
+          },
         },
         { status: 500 }
       );
@@ -218,6 +227,12 @@ export async function POST() {
         campaignsProcessed: result.campaignsProcessed,
         adsProcessed: result.adsProcessed,
         metricsStored: result.metricsStored,
+      },
+      debugInfo: {
+        adAccountId,
+        dateRange,
+        totalErrors: result.errors.length,
+        errors: result.errors,
       },
     });
 
