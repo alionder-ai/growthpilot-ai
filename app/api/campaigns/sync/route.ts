@@ -1,16 +1,38 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-import { createServerClient } from '@/lib/supabase/server';
 import { syncMetaData } from '@/lib/meta/sync';
 
 export async function POST() {
-  let supabase;
   let userId: string | undefined;
 
   try {
     console.log('[SYNC API] Starting sync request...');
     
-    supabase = await createServerClient();
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    console.log('[SYNC API] Supabase Bağlantı Kontrolü:', {
+      url: !!supabaseUrl,
+      key: !!supabaseKey,
+      urlValue: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'undefined',
+      keyType: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SERVICE_ROLE' : 'ANON',
+    });
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('[SYNC API] Missing Supabase credentials:', {
+        hasUrl: !!supabaseUrl,
+        hasServiceRole: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+        hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      });
+      return NextResponse.json(
+        { error: 'Supabase bağlantı bilgileri eksik. Lütfen sistem yöneticisine başvurun.' },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    console.log('[SYNC API] Supabase client created successfully');
     
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
