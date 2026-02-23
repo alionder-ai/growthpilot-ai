@@ -224,6 +224,11 @@ export default function ClientDetailPage() {
       return;
     }
 
+    if (!client?.client_id) {
+      setError('Müşteri ID bulunamadı');
+      return;
+    }
+
     setSyncing(true);
     setError(null);
     setSuccessMessage(null);
@@ -231,6 +236,12 @@ export default function ClientDetailPage() {
     try {
       const response = await fetch('/api/campaigns/sync', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          clientId: client.client_id,
+        }),
       });
 
       const data = await response.json();

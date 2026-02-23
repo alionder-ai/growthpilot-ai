@@ -1,16 +1,21 @@
 import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 import { syncMetaData } from '@/lib/meta/sync';
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   let userId: string | undefined;
   let currentStep = 'INITIALIZATION';
 
   try {
     console.log('[SYNC API] ========== SYNC BAŞLADI ==========');
     console.log('[SYNC API] ADIM 0: İstek başlatılıyor...');
+    
+    // Get clientId from request body
+    const body = await request.json().catch(() => ({}));
+    const requestedClientId = body.clientId;
+    console.log('[SYNC API] İstenen Client ID:', requestedClientId || 'Tüm müşteriler');
     
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -116,12 +121,22 @@ export async function POST() {
 
     currentStep = 'AD_ACCOUNT_FETCH';
     console.log('[SYNC API] ADIM 3: Ad Account ID çekiliyor...');
-    const { data: clients, error: clientsError } = await supabase
+    
+    // Build query
+    let query = supabase
       .from('clients')
       .select('client_id, meta_ad_account_id')
       .eq('user_id', userId)
       .eq('meta_connected', true)
       .not('meta_ad_account_id', 'is', null);
+    
+    // If clientId is provided, filter for that specific client
+    if (requestedClientId) {
+      query = query.eq('client_id', requestedClientId);
+      console.log('[SYNC API] Sadece belirli müşteri için senkronizasyon:', requestedClientId);
+    }
+    
+    const { data: clients, error: clientsError } = await query;
 
     if (clientsError) {
       console.error('[SYNC API] HATA (AD_ACCOUNT_FETCH):', clientsError);
