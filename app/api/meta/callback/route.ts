@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 
-import { createClient as createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 
 import { encrypt } from '@/lib/utils/encryption';
 
@@ -101,35 +100,13 @@ export async function GET(request: NextRequest) {
     const adAccountId = firstAdAccount.account_id;
 
     const encryptedToken = encrypt(accessToken);
-
-    const cookieStore = await cookies();
-    const supabaseAdmin = createServerClient(
+    
+    const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: any) {
-            try {
-              cookieStore.set(name, value, options);
-            } catch {
-              // Ignore cookie errors
-            }
-          },
-          remove(name: string, options: any) {
-            try {
-              cookieStore.set(name, '', options);
-            } catch {
-              // Ignore cookie errors
-            }
-          },
-        },
-      }
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const { error: tokenError } = await supabaseAdmin
+    const { error: tokenError } = await supabase
       .from('meta_tokens')
       .upsert({
         user_id: userId,
@@ -145,7 +122,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { error: clientError } = await supabaseAdmin
+    const { error: clientError } = await supabase
       .from('clients')
       .update({
         meta_ad_account_id: adAccountId,
