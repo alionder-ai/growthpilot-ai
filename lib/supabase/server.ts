@@ -1,19 +1,25 @@
 import { cookies } from 'next/headers';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient as createSupabaseServerClient, type CookieOptions } from '@supabase/ssr';
 
-// Re-export for backward compatibility
 export { createServerClient } from '@supabase/ssr';
 
-/**
- * Create a Supabase client for server-side operations (API routes, Server Components)
- * This client respects RLS policies and uses the authenticated user's session
- */
 export async function createClient() {
   const cookieStore = await cookies();
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('[SUPABASE] Missing environment variables:', {
+      hasUrl: !!supabaseUrl,
+      hasKey: !!supabaseAnonKey,
+    });
+    throw new Error('Supabase URL ve Key ortam değişkenleri eksik. Lütfen .env dosyasını kontrol edin.');
+  }
+
+  return createSupabaseServerClient(
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         get(name: string) {
