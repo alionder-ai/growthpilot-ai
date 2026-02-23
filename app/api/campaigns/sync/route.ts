@@ -1,5 +1,6 @@
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
 
 import { syncMetaData } from '@/lib/meta/sync';
 
@@ -20,24 +21,51 @@ export async function POST() {
     });
 
     if (!supabaseUrl || !supabaseKey) {
-      console.error('[SYNC API] Missing Supabase credentials:', {
-        hasUrl: !!supabaseUrl,
-        hasServiceRole: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-        hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      });
+      console.error('[SYNC API] Missing Supabase credentials');
       return NextResponse.json(
-        { error: 'Supabase bağlantı bilgileri eksik. Lütfen sistem yöneticisine başvurun.' },
+        { error: 'Supabase bağlantı bilgileri eksik' },
         { status: 500 }
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    console.log('[SYNC API] Supabase client created successfully');
+    const cookieStore = await cookies();
+
+    const supabase = createServerClient(
+      supabaseUrl,
+      supabaseKey,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: any) {
+            try {
+              cookieStore.set(name, value, options);
+            } catch (error) {
+              console.error('[SYNC API] Cookie set error:', error);
+            }
+          },
+          remove(name: string, options: any) {
+            try {
+              cookieStore.set(name, '', options);
+            } catch (error) {
+              console.error('[SYNC API] Cookie remove error:', error);
+            }
+          },
+        },
+      }
+    );
+
+    console.log('[SYNC API] Supabase client created with cookies');
     
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError) {
-      console.error('[SYNC API] Auth error:', authError);
+      console.error('[SYNC API] Auth error:', {
+        message: authError.message,
+        status: authError.status,
+        name: authError.name,
+      });
       return NextResponse.json(
         { error: 'Kimlik doğrulama hatası', details: authError.message },
         { status: 401 }
@@ -45,9 +73,9 @@ export async function POST() {
     }
 
     if (!user) {
-      console.error('[SYNC API] No user found');
+      console.error('[SYNC API] No user found in session');
       return NextResponse.json(
-        { error: 'Kimlik doğrulama gerekli' },
+        { error: 'Oturum bulunamadı. Lütfen tekrar giriş yapın.' },
         { status: 401 }
       );
     }
