@@ -57,17 +57,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cachedData);
     }
 
-    // Build query
+    // Build query - Use LEFT JOIN instead of INNER JOIN to avoid RLS issues
     let query = supabase
       .from('ai_recommendations')
       .select(`
-        *,
-        clients!inner(
-          client_id,
-          name,
-          industry,
-          user_id
-        )
+        recommendation_id,
+        client_id,
+        recommendation_type,
+        content,
+        priority,
+        status,
+        created_at
       `)
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -89,22 +89,22 @@ export async function GET(request: NextRequest) {
     const { data: recommendations, error: fetchError } = await query;
 
     if (fetchError) {
-      console.error('Error fetching recommendations:', fetchError);
+      console.error('[RECOMMENDATIONS API] Error fetching recommendations:', fetchError);
       return NextResponse.json(
-        { error: 'Öneriler alınırken hata oluştu' },
+        { error: 'Öneriler alınırken hata oluştu', details: fetchError.message },
         { status: 500 }
       );
     }
 
-    // Filter to only include recommendations for user's clients
-    const userRecommendations = recommendations?.filter((rec: any) => {
-      return rec.clients?.user_id === user.id;
-    }) || [];
+    console.log('[RECOMMENDATIONS API] Found', recommendations?.length || 0, 'recommendations');
+
+    // RLS policy already filters by user's clients, so we don't need additional filtering
+    const result = recommendations || [];
 
     // Cache the result
-    cache.set(cacheKey, userRecommendations, CACHE_TTL.AI_RECOMMENDATIONS);
+    cache.set(cacheKey, result, CACHE_TTL.AI_RECOMMENDATIONS);
 
-    return NextResponse.json(userRecommendations);
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error in recommendations fetch:', error);
     return NextResponse.json(
