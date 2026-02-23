@@ -118,11 +118,10 @@ export async function POST() {
     console.log('[SYNC API] ADIM 3: Ad Account ID çekiliyor...');
     const { data: clients, error: clientsError } = await supabase
       .from('clients')
-      .select('meta_ad_account_id')
+      .select('client_id, meta_ad_account_id')
       .eq('user_id', userId)
       .eq('meta_connected', true)
-      .not('meta_ad_account_id', 'is', null)
-      .limit(1);
+      .not('meta_ad_account_id', 'is', null);
 
     if (clientsError) {
       console.error('[SYNC API] HATA (AD_ACCOUNT_FETCH):', clientsError);
@@ -140,16 +139,20 @@ export async function POST() {
       );
     }
 
-    const adAccountId = clients[0].meta_ad_account_id;
-    if (!adAccountId) {
-      console.error('[SYNC API] HATA (AD_ACCOUNT_FETCH): Ad account ID null');
-      return NextResponse.json(
-        { error: 'Reklam hesabı ID bulunamadı', step: 'AD_ACCOUNT_FETCH' },
-        { status: 400 }
-      );
-    }
+    console.log('[SYNC API] ✓ Bağlı müşteriler bulundu:', clients.length);
+    console.log('[SYNC API] Müşteri hesapları:', clients.map(c => ({
+      clientId: c.client_id,
+      adAccountId: c.meta_ad_account_id,
+    })));
 
-    console.log('[SYNC API] ✓ Ad Account ID bulundu:', adAccountId);
+    // Sync all connected clients' ad accounts
+    const allResults = {
+      success: true,
+      totalCampaigns: 0,
+      totalAds: 0,
+      totalMetrics: 0,
+      errors: [] as string[],
+    };
 
     const endDate = new Date();
     const startDate = new Date();
@@ -162,57 +165,70 @@ export async function POST() {
 
     console.log('[SYNC API] ✓ Tarih aralığı:', dateRange);
 
-    currentStep = 'META_SYNC';
-    console.log('[SYNC API] ADIM 4: Meta Graph API\'den veri çekiliyor...');
-    console.log('[SYNC API] syncMetaData parametreleri:', {
-      userId,
-      adAccountId,
-      dateRange,
-      hasToken: !!token.encrypted_token,
-    });
+    for (const client of clients) {
+      const adAccountId = client.meta_ad_account_id;
+      if (!adAccountId) {
+        console.log(`[SYNC API] ⚠ Client ${client.client_id} için ad account ID yok, atlanıyor`);
+        continue;
+      }
 
-    const result = await syncMetaData(
-      supabase,
-      userId,
-      token.encrypted_token,
-      adAccountId,
-      dateRange
-    );
+      console.log(`[SYNC API] ADIM 4: Client ${client.client_id} için Meta Graph API'den veri çekiliyor...`);
+      console.log('[SYNC API] syncMetaData parametreleri:', {
+        userId,
+        clientId: client.client_id,
+        adAccountId,
+        dateRange,
+        hasToken: !!token.encrypted_token,
+      });
 
-    console.log('[SYNC API] ✓ syncMetaData tamamlandı');
-    console.log('[SYNC API] Sonuç:', {
-      success: result.success,
-      campaignsProcessed: result.campaignsProcessed,
-      adsProcessed: result.adsProcessed,
-      metricsStored: result.metricsStored,
-      errorCount: result.errors.length,
-    });
+      currentStep = 'META_SYNC';
+      const result = await syncMetaData(
+        supabase,
+        userId,
+        token.encrypted_token,
+        adAccountId,
+        dateRange
+      );
 
-    if (!result.success) {
+      console.log(`[SYNC API] ✓ Client ${client.client_id} syncMetaData tamamlandı`);
+      console.log('[SYNC API] Sonuç:', {
+        success: result.success,
+        campaignsProcessed: result.campaignsProcessed,
+        adsProcessed: result.adsProcessed,
+        metricsStored: result.metricsStored,
+        errorCount: result.errors.length,
+      });
+
+      allResults.totalCampaigns += result.campaignsProcessed;
+      allResults.totalAds += result.adsProcessed;
+      allResults.totalMetrics += result.metricsStored;
+      allResults.errors.push(...result.errors);
+
+      if (!result.success) {
+        allResults.success = false;
+      }
+    }
+
+    if (!allResults.success || allResults.errors.length > 0) {
       console.error('[SYNC API] ========== SYNC BAŞARISIZ ==========');
-      console.error('[SYNC API] Hata sayısı:', result.errors.length);
-      console.error('[SYNC API] Hatalar:', JSON.stringify(result.errors, null, 2));
+      console.error('[SYNC API] Hata sayısı:', allResults.errors.length);
+      console.error('[SYNC API] Hatalar:', JSON.stringify(allResults.errors, null, 2));
       console.error('[SYNC API] ====================================');
       
       return NextResponse.json(
         {
           error: 'Senkronizasyon sırasında hatalar oluştu',
-          errorDetails: result.errors.join(' | '),
-          allErrors: result.errors,
+          errorDetails: allResults.errors.join(' | '),
+          allErrors: allResults.errors,
           step: 'META_SYNC',
           stats: {
-            campaignsProcessed: result.campaignsProcessed,
-            adsProcessed: result.adsProcessed,
-            metricsStored: result.metricsStored,
+            campaignsProcessed: allResults.totalCampaigns,
+            adsProcessed: allResults.totalAds,
+            metricsStored: allResults.totalMetrics,
           },
           debugInfo: {
-            message: 'Meta API\'den 0 kampanya döndü. Lütfen şunları kontrol edin:',
-            checks: [
-              `Hesap ID: ${adAccountId}`,
-              'Token scope: ads_read yetkisi var mı?',
-              'Hesapta aktif kampanya var mı?',
-              'Meta Business Manager\'da hesap erişimi aktif mi?',
-            ],
+            message: 'Meta API\'den veri çekilirken hatalar oluştu',
+            checks: clients.map(c => `Hesap ID: ${c.meta_ad_account_id}`),
           },
         },
         { status: 500 }
@@ -224,15 +240,16 @@ export async function POST() {
       success: true,
       message: 'Senkronizasyon başarıyla tamamlandı',
       stats: {
-        campaignsProcessed: result.campaignsProcessed,
-        adsProcessed: result.adsProcessed,
-        metricsStored: result.metricsStored,
+        campaignsProcessed: allResults.totalCampaigns,
+        adsProcessed: allResults.totalAds,
+        metricsStored: allResults.totalMetrics,
       },
       debugInfo: {
-        adAccountId,
+        clientCount: clients.length,
+        adAccountIds: clients.map(c => c.meta_ad_account_id),
         dateRange,
-        totalErrors: result.errors.length,
-        errors: result.errors,
+        totalErrors: allResults.errors.length,
+        errors: allResults.errors,
       },
     });
 
