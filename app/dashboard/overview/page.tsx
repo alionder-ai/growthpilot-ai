@@ -153,6 +153,7 @@ export default function OverviewPage() {
           <OverviewCards
             totalClients={metrics?.totalClients || 0}
             totalSpendThisMonth={metrics?.totalSpendThisMonth || 0}
+            totalSpendToday={metrics?.totalSpendToday || 0}
             totalRevenueThisMonth={metrics?.totalRevenueThisMonth || 0}
             activeCampaigns={metrics?.activeCampaigns || 0}
             isLoading={isLoadingMetrics}

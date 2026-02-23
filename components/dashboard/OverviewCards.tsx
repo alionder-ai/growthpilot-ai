@@ -6,6 +6,7 @@ import { formatCurrency } from '@/lib/utils/locale';
 interface OverviewCardsProps {
   totalClients: number;
   totalSpendThisMonth: number;
+  totalSpendToday: number;
   totalRevenueThisMonth: number;
   activeCampaigns: number;
   isLoading?: boolean;
@@ -14,18 +15,22 @@ interface OverviewCardsProps {
 interface StatCardProps {
   title: string;
   value: string | number;
+  subtitle?: string;
   icon: React.ReactNode;
   iconBgColor: string;
   iconColor: string;
 }
 
-function StatCard({ title, value, icon, iconBgColor, iconColor }: StatCardProps) {
+function StatCard({ title, value, subtitle, icon, iconBgColor, iconColor }: StatCardProps) {
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
           <p className="text-2xl font-bold text-gray-900">{value}</p>
+          {subtitle && (
+            <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+          )}
         </div>
         <div className={`${iconBgColor} ${iconColor} p-3 rounded-lg`}>
           {icon}
@@ -52,6 +57,7 @@ function SkeletonCard() {
 export function OverviewCards({
   totalClients,
   totalSpendThisMonth,
+  totalSpendToday,
   totalRevenueThisMonth,
   activeCampaigns,
   isLoading = false,
@@ -79,12 +85,13 @@ export function OverviewCards({
       <StatCard
         title="Bu Ay Harcama"
         value={formatCurrency(totalSpendThisMonth)}
+        subtitle={`Bugün: ${formatCurrency(totalSpendToday)}`}
         icon={<DollarSign className="w-6 h-6" />}
         iconBgColor="bg-red-100"
         iconColor="text-red-600"
       />
       <StatCard
-        title="Bu Ay Gelir"
+        title="Bu Ay Gelir (Komisyon)"
         value={formatCurrency(totalRevenueThisMonth)}
         icon={<TrendingUp className="w-6 h-6" />}
         iconBgColor="bg-green-100"

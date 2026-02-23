@@ -99,66 +99,88 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(metrics);
     }
 
-    // Get active campaigns count
-    const { data: campaigns, error: campaignsError } = await supabase
+    // Get ALL campaigns (not just active) for spend calculation
+    const { data: allCampaigns, error: campaignsError } = await supabase
       .from('campaigns')
-      .select('campaign_id')
-      .in('client_id', clientIds)
-      .eq('status', 'ACTIVE');
+      .select('campaign_id, status')
+      .in('client_id', clientIds);
 
     if (campaignsError) {
       console.error('Error fetching campaigns:', campaignsError);
     }
 
-    const activeCampaigns = campaigns?.length || 0;
+    // Count only ACTIVE campaigns for the metric
+    const activeCampaigns = allCampaigns?.filter(c => c.status === 'ACTIVE').length || 0;
 
-    // Get campaign IDs for metrics query
-    const campaignIds = campaigns?.map((c) => c.campaign_id) || [];
+    // Get ALL campaign IDs for spend calculation (including paused/inactive)
+    const campaignIds = allCampaigns?.map((c) => c.campaign_id) || [];
 
     let totalSpendThisMonth = 0;
     let totalSpendToday = 0;
 
+    console.log('[OVERVIEW METRICS] Calculating spend for', campaignIds.length, 'campaigns');
+
     if (campaignIds.length > 0) {
-      // Get ad IDs for these campaigns
+      // Get ad IDs for these campaigns through ad_sets
       const { data: adSets } = await supabase
         .from('ad_sets')
-        .select('ad_set_id')
+        .select('ad_set_id, campaign_id')
         .in('campaign_id', campaignIds);
+
+      console.log('[OVERVIEW METRICS] Found', adSets?.length || 0, 'ad sets');
 
       const adSetIds = adSets?.map((as) => as.ad_set_id) || [];
 
       if (adSetIds.length > 0) {
         const { data: ads } = await supabase
           .from('ads')
-          .select('ad_id')
+          .select('ad_id, ad_set_id')
           .in('ad_set_id', adSetIds);
+
+        console.log('[OVERVIEW METRICS] Found', ads?.length || 0, 'ads');
 
         const adIds = ads?.map((a) => a.ad_id) || [];
 
         if (adIds.length > 0) {
           // Get spend for this month
-          const { data: monthMetrics } = await supabase
-            .from('meta_metrics')
-            .select('spend')
-            .in('ad_id', adIds)
-            .gte('date', startOfMonth.toISOString().split('T')[0]);
+          const monthStartDate = startOfMonth.toISOString().split('T')[0];
+          console.log('[OVERVIEW METRICS] Fetching metrics from', monthStartDate);
 
-          totalSpendThisMonth = monthMetrics?.reduce(
-            (sum, m) => sum + (m.spend || 0),
-            0
-          ) || 0;
+          const { data: monthMetrics, error: monthError } = await supabase
+            .from('meta_metrics')
+            .select('spend, date, ad_id')
+            .in('ad_id', adIds)
+            .gte('date', monthStartDate);
+
+          if (monthError) {
+            console.error('[OVERVIEW METRICS] Error fetching month metrics:', monthError);
+          } else {
+            console.log('[OVERVIEW METRICS] Found', monthMetrics?.length || 0, 'metric records for this month');
+            totalSpendThisMonth = monthMetrics?.reduce(
+              (sum, m) => sum + (parseFloat(String(m.spend)) || 0),
+              0
+            ) || 0;
+            console.log('[OVERVIEW METRICS] Total spend this month:', totalSpendThisMonth);
+          }
 
           // Get spend for today
-          const { data: todayMetrics } = await supabase
+          const todayDate = startOfDay.toISOString().split('T')[0];
+          const { data: todayMetrics, error: todayError } = await supabase
             .from('meta_metrics')
-            .select('spend')
+            .select('spend, date')
             .in('ad_id', adIds)
-            .gte('date', startOfDay.toISOString().split('T')[0]);
+            .eq('date', todayDate);
 
-          totalSpendToday = todayMetrics?.reduce(
-            (sum, m) => sum + (m.spend || 0),
-            0
-          ) || 0;
+          if (todayError) {
+            console.error('[OVERVIEW METRICS] Error fetching today metrics:', todayError);
+          } else {
+            console.log('[OVERVIEW METRICS] Found', todayMetrics?.length || 0, 'metric records for today');
+            totalSpendToday = todayMetrics?.reduce(
+              (sum, m) => sum + (parseFloat(String(m.spend)) || 0),
+              0
+            ) || 0;
+            console.log('[OVERVIEW METRICS] Total spend today:', totalSpendToday);
+          }
         }
       }
     }
