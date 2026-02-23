@@ -74,17 +74,26 @@ export default function ActionPlanPage() {
     setError(null);
     
     try {
+      console.log('[ACTION PLAN] Fetching for client:', clientId);
       const response = await fetch(`/api/ai/recommendations?clientId=${clientId}&type=action_plan&status=active&limit=1`);
+      
+      console.log('[ACTION PLAN] Response status:', response.status);
       
       if (!response.ok) {
         if (response.status === 404) {
+          console.log('[ACTION PLAN] No action plan found');
           setActionPlan(null);
           return;
         }
-        throw new Error('Aksiyon planı yüklenemedi');
+        
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[ACTION PLAN] Error response:', errorData);
+        throw new Error(errorData.error || 'Aksiyon planı yüklenemedi');
       }
       
       const data = await response.json();
+      console.log('[ACTION PLAN] Received data:', data);
+      
       const plans = Array.isArray(data) ? data : [];
       if (plans.length > 0) {
         setActionPlan(plans[0]);
@@ -92,7 +101,8 @@ export default function ActionPlanPage() {
         setActionPlan(null);
       }
     } catch (err) {
-      setError('Aksiyon planı yüklenirken hata oluştu');
+      console.error('[ACTION PLAN] Fetch error:', err);
+      setError(err instanceof Error ? err.message : 'Aksiyon planı yüklenirken hata oluştu');
       setActionPlan(null);
     } finally {
       setLoading(false);
@@ -106,6 +116,7 @@ export default function ActionPlanPage() {
     setError(null);
     
     try {
+      console.log('[ACTION PLAN] Generating for client:', selectedClientId);
       const response = await fetch('/api/ai/action-plan', {
         method: 'POST',
         headers: {
@@ -114,13 +125,26 @@ export default function ActionPlanPage() {
         body: JSON.stringify({ clientId: selectedClientId }),
       });
       
+      console.log('[ACTION PLAN] Generate response status:', response.status);
+      
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[ACTION PLAN] Generate error:', errorData);
+        
+        // Provide more specific error messages
+        if (response.status === 404) {
+          throw new Error(errorData.error || 'Bu müşteri için kampanya verisi bulunamadı. Lütfen önce Meta verilerini senkronize edin.');
+        }
+        
         throw new Error(errorData.error || 'Aksiyon planı oluşturulamadı');
       }
       
+      const result = await response.json();
+      console.log('[ACTION PLAN] Generated successfully:', result);
+      
       await fetchActionPlan(selectedClientId);
     } catch (err) {
+      console.error('[ACTION PLAN] Generation error:', err);
       setError(err instanceof Error ? err.message : 'Aksiyon planı oluşturulurken hata oluştu');
     } finally {
       setGenerating(false);

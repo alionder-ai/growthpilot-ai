@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     if (campaignIds.length === 0) {
       return NextResponse.json(
-        { error: 'Bu müşteri için kampanya bulunamadı' },
+        { error: 'Bu müşteri için kampanya bulunamadı. Lütfen önce Meta verilerini senkronize edin.' },
         { status: 404 }
       );
     }
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
 
     if (adSetIds.length === 0) {
       return NextResponse.json(
-        { error: 'Bu müşteri için reklam seti bulunamadı' },
+        { error: 'Bu müşteri için reklam seti bulunamadı. Lütfen Meta verilerini senkronize edin.' },
         { status: 404 }
       );
     }
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
 
     if (adIds.length === 0) {
       return NextResponse.json(
-        { error: 'Bu müşteri için reklam bulunamadı' },
+        { error: 'Bu müşteri için reklam bulunamadı. Lütfen Meta verilerini senkronize edin.' },
         { status: 404 }
       );
     }
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
 
     if (!metrics || metrics.length === 0) {
       return NextResponse.json(
-        { error: 'Bu müşteri için metrik verisi bulunamadı' },
+        { error: 'Bu müşteri için metrik verisi bulunamadı. Lütfen Meta verilerini senkronize edin ve birkaç gün sonra tekrar deneyin.' },
         { status: 404 }
       );
     }
