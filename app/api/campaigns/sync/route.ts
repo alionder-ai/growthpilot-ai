@@ -197,11 +197,21 @@ export async function POST() {
     });
 
     if (!result.success) {
-      console.error('[SYNC API] Sync failed with errors:', result.errors);
+      console.error('[SYNC API] ========== SYNC FAILED ==========');
+      console.error('[SYNC API] Error count:', result.errors.length);
+      console.error('[SYNC API] All errors:', JSON.stringify(result.errors, null, 2));
+      console.error('[SYNC API] Stats:', {
+        campaignsProcessed: result.campaignsProcessed,
+        adsProcessed: result.adsProcessed,
+        metricsStored: result.metricsStored,
+      });
+      console.error('[SYNC API] ====================================');
+      
       return NextResponse.json(
         {
           error: 'Senkronizasyon sırasında hatalar oluştu',
-          details: result.errors,
+          errorDetails: result.errors.join(' | '),
+          allErrors: result.errors,
           stats: {
             campaignsProcessed: result.campaignsProcessed,
             adsProcessed: result.adsProcessed,
@@ -223,16 +233,17 @@ export async function POST() {
     });
 
   } catch (error) {
-    console.error('[SYNC API] CRITICAL ERROR:', error);
-    console.error('[SYNC API] Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      userId,
-    });
+    console.error('[SYNC API] ========== CRITICAL ERROR ==========');
+    console.error('[SYNC API] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('[SYNC API] Error message:', error instanceof Error ? error.message : String(error));
+    console.error('[SYNC API] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('[SYNC API] User ID:', userId);
+    console.error('[SYNC API] =======================================');
 
     return NextResponse.json(
       { 
         error: error instanceof Error ? error.message : 'Beklenmeyen bir hata oluştu',
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
         details: error instanceof Error ? error.stack : String(error),
       },
       { status: 500 }
