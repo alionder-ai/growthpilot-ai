@@ -36,15 +36,15 @@ export async function GET(request: NextRequest) {
     }
 
     const metaAppId = process.env.META_APP_ID;
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-
-    if (!metaAppId || !appUrl) {
+    
+    if (!metaAppId) {
       const redirectUrl = new URL('/dashboard/clients', request.url);
-      redirectUrl.searchParams.set('error', 'meta_config_missing');
+      redirectUrl.searchParams.set('error', 'meta_app_id_missing');
       return NextResponse.redirect(redirectUrl);
     }
 
-    const redirectUri = `${appUrl}/api/meta/callback`;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+    const redirectUri = `${baseUrl}/api/meta/callback`;
     const state = Buffer.from(JSON.stringify({ clientId, userId: user.id })).toString('base64');
 
     const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?` +

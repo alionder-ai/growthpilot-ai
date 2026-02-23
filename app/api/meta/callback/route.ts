@@ -42,15 +42,15 @@ export async function GET(request: NextRequest) {
 
   const metaAppId = process.env.META_APP_ID;
   const metaAppSecret = process.env.META_APP_SECRET;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
-  if (!metaAppId || !metaAppSecret || !appUrl) {
+  if (!metaAppId || !metaAppSecret) {
     return NextResponse.redirect(
-      new URL('/dashboard/clients?error=meta_config_missing', request.url)
+      new URL('/dashboard/clients?error=meta_credentials_missing', request.url)
     );
   }
 
-  const redirectUri = `${appUrl}/api/meta/callback`;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+  const redirectUri = `${baseUrl}/api/meta/callback`;
 
   try {
     const tokenUrl = `https://graph.facebook.com/v18.0/oauth/access_token?` +
