@@ -15,6 +15,13 @@ interface Campaign {
   last_synced_at: string;
 }
 
+interface AdAccount {
+  id: string;
+  accountId: string;
+  name: string;
+  status: number;
+}
+
 export default function ClientDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -29,6 +36,11 @@ export default function ClientDetailPage() {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
+  const [selectedAdAccountId, setSelectedAdAccountId] = useState<string>('');
+  const [loadingAdAccounts, setLoadingAdAccounts] = useState(false);
+  const [savingAdAccount, setSavingAdAccount] = useState(false);
+  const [isEditingAdAccount, setIsEditingAdAccount] = useState(false);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -98,8 +110,101 @@ export default function ClientDetailPage() {
   useEffect(() => {
     if (client?.meta_connected) {
       fetchCampaigns();
+      fetchAdAccounts();
     }
   }, [client?.meta_connected, fetchCampaigns]);
+
+  const fetchAdAccounts = async () => {
+    setLoadingAdAccounts(true);
+    try {
+      const response = await fetch('/api/meta/ad-accounts');
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAdAccounts(data.adAccounts || []);
+        
+        // Set current ad account as selected if exists
+        if (client?.meta_ad_account_id) {
+          setSelectedAdAccountId(client.meta_ad_account_id);
+        }
+      }
+    } catch (err) {
+      console.error('Reklam hesapları yüklenemedi:', err);
+    } finally {
+      setLoadingAdAccounts(false);
+    }
+  };
+
+  const handleSaveAdAccount = async () => {
+    if (!selectedAdAccountId || !client?.client_id) {
+      setError('Lütfen bir reklam hesabı seçin');
+      return;
+    }
+
+    setSavingAdAccount(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const response = await fetch(`/api/clients/${client.client_id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          meta_ad_account_id: selectedAdAccountId,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Reklam hesabı kaydedilemedi');
+      }
+
+      setSuccessMessage('Reklam hesabı başarıyla güncellendi!');
+      setIsEditingAdAccount(false);
+      await fetchClient();
+      
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Reklam hesabı güncellenirken hata oluştu');
+    } finally {
+      setSavingAdAccount(false);
+    }
+  };
+
+  const handleDisconnectMeta = async () => {
+    if (!client?.client_id) return;
+
+    if (!confirm('Meta bağlantısını kaldırmak istediğinizden emin misiniz? Bu işlem kampanya verilerinizi silmez.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/clients/${client.client_id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          meta_connected: false,
+          meta_ad_account_id: null,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Bağlantı kaldırılamadı');
+      }
+
+      setSuccessMessage('Meta bağlantısı başarıyla kaldırıldı');
+      await fetchClient();
+      
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bağlantı kaldırılırken hata oluştu');
+    }
+  };
 
   const handleConnectMeta = () => {
     if (!client?.client_id) {
@@ -239,17 +344,20 @@ export default function ClientDetailPage() {
           
           {client.meta_connected ? (
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 bg-green-500 rounded-full"></div>
-                <span className="text-sm font-medium text-green-700">Bağlı</span>
-              </div>
-              
-              {client.meta_ad_account_id && (
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Hesap ID</label>
-                  <p className="text-gray-900 font-mono text-sm">act_{client.meta_ad_account_id}</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-green-700">Bağlı</span>
                 </div>
-              )}
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleDisconnectMeta}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  Bağlantıyı Kaldır
+                </Button>
+              </div>
               
               {client.meta_connected_at && (
                 <div>
@@ -264,9 +372,102 @@ export default function ClientDetailPage() {
                 </div>
               )}
 
+              <div className="border-t pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-gray-700">Reklam Hesabı</label>
+                  {!isEditingAdAccount && client.meta_ad_account_id && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => {
+                        setIsEditingAdAccount(true);
+                        setSelectedAdAccountId(client.meta_ad_account_id || '');
+                      }}
+                    >
+                      Değiştir
+                    </Button>
+                  )}
+                </div>
+
+                {isEditingAdAccount ? (
+                  <div className="space-y-3">
+                    {loadingAdAccounts ? (
+                      <div className="flex items-center justify-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                      </div>
+                    ) : adAccounts.length > 0 ? (
+                      <>
+                        <select
+                          value={selectedAdAccountId}
+                          onChange={(e) => setSelectedAdAccountId(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Reklam hesabı seçin...</option>
+                          {adAccounts.map((account) => (
+                            <option key={account.id} value={account.accountId}>
+                              {account.name} (act_{account.accountId})
+                            </option>
+                          ))}
+                        </select>
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={handleSaveAdAccount}
+                            disabled={savingAdAccount || !selectedAdAccountId}
+                            className="flex-1"
+                          >
+                            {savingAdAccount ? 'Kaydediliyor...' : 'Kaydet'}
+                          </Button>
+                          <Button 
+                            variant="outline"
+                            onClick={() => {
+                              setIsEditingAdAccount(false);
+                              setSelectedAdAccountId(client.meta_ad_account_id || '');
+                            }}
+                            disabled={savingAdAccount}
+                          >
+                            İptal
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-sm text-gray-600 py-2">
+                        Reklam hesabı bulunamadı. Lütfen Meta Business Manager'da hesap erişiminizi kontrol edin.
+                      </div>
+                    )}
+                  </div>
+                ) : client.meta_ad_account_id ? (
+                  <div className="bg-gray-50 rounded-md p-3">
+                    <p className="text-gray-900 font-mono text-sm">
+                      act_{client.meta_ad_account_id}
+                    </p>
+                    {adAccounts.length > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {adAccounts.find(acc => acc.accountId === client.meta_ad_account_id)?.name || 'Hesap adı yükleniyor...'}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
+                      ⚠️ Henüz bir reklam hesabı seçilmedi. Veri senkronizasyonu için bir hesap seçmelisiniz.
+                    </p>
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        setIsEditingAdAccount(true);
+                        fetchAdAccounts();
+                      }}
+                      className="w-full"
+                    >
+                      Reklam Hesabı Seç
+                    </Button>
+                  </div>
+                )}
+              </div>
+
               <Button 
                 onClick={handleSyncData} 
-                disabled={syncing}
+                disabled={syncing || !client.meta_ad_account_id}
                 className="w-full"
               >
                 {syncing ? (
@@ -278,6 +479,12 @@ export default function ClientDetailPage() {
                   'Verileri Senkronize Et'
                 )}
               </Button>
+              
+              {!client.meta_ad_account_id && (
+                <p className="text-xs text-gray-500 text-center">
+                  Senkronizasyon için önce bir reklam hesabı seçmelisiniz
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-4">

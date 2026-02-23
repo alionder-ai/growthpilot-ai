@@ -96,9 +96,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const firstAdAccount = adAccounts[0];
-    const adAccountId = firstAdAccount.account_id;
-
+    // Don't auto-assign first account - user will select from dropdown
     const encryptedToken = encrypt(accessToken);
     
     const supabase = createClient(
@@ -139,10 +137,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Mark client as connected but don't assign ad account yet - user will select from dropdown
     const { error: clientError } = await supabase
       .from('clients')
       .update({
-        meta_ad_account_id: adAccountId,
         meta_connected: true,
         meta_connected_at: new Date().toISOString(),
       })
