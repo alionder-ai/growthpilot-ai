@@ -18,26 +18,36 @@ export const dynamic = 'force-dynamic';
  * - Array of recommendations with client info
  */
 export async function GET(request: NextRequest) {
+  console.log('[RECOMMENDATIONS API] ========== REQUEST START ==========');
+  
   try {
+    console.log('[RECOMMENDATIONS API] Step 1: Creating Supabase client...');
     const supabase = await createClient();
+    console.log('[RECOMMENDATIONS API] ✓ Supabase client created');
 
-    console.log('[RECOMMENDATIONS API] Starting request');
-
-    // Get authenticated user
+    console.log('[RECOMMENDATIONS API] Step 2: Getting authenticated user...');
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
 
-    if (authError || !user) {
-      console.error('[RECOMMENDATIONS API] Auth error:', authError);
+    if (authError) {
+      console.error('[RECOMMENDATIONS API] ✗ Auth error:', authError);
       return NextResponse.json(
-        { error: 'Yetkisiz erişim' },
+        { error: 'Kimlik doğrulama hatası', details: authError.message },
         { status: 401 }
       );
     }
 
-    console.log('[RECOMMENDATIONS API] User authenticated:', user.id);
+    if (!user) {
+      console.error('[RECOMMENDATIONS API] ✗ No user found');
+      return NextResponse.json(
+        { error: 'Oturum bulunamadı' },
+        { status: 401 }
+      );
+    }
+
+    console.log('[RECOMMENDATIONS API] ✓ User authenticated:', user.id);
 
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
@@ -46,20 +56,13 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const limit = parseInt(searchParams.get('limit') || '10', 10);
 
-    console.log('[RECOMMENDATIONS API] Query params:', { clientId, type, status, limit });
+    console.log('[RECOMMENDATIONS API] Step 3: Query params:', { clientId, type, status, limit });
 
     // Build query
+    console.log('[RECOMMENDATIONS API] Step 4: Building query...');
     let query = supabase
       .from('ai_recommendations')
-      .select(`
-        recommendation_id,
-        client_id,
-        recommendation_type,
-        content,
-        priority,
-        status,
-        created_at
-      `)
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(limit);
 
@@ -77,27 +80,37 @@ export async function GET(request: NextRequest) {
     }
 
     // Execute query
-    console.log('[RECOMMENDATIONS API] Executing query...');
+    console.log('[RECOMMENDATIONS API] Step 5: Executing query...');
     const { data: recommendations, error: fetchError } = await query;
 
     if (fetchError) {
-      console.error('[RECOMMENDATIONS API] Fetch error:', fetchError);
+      console.error('[RECOMMENDATIONS API] ✗ Fetch error:', fetchError);
       return NextResponse.json(
-        { error: 'Öneriler alınırken hata oluştu', details: fetchError.message },
+        { error: 'Veritabanı sorgusu başarısız', details: fetchError.message },
         { status: 500 }
       );
     }
 
-    console.log('[RECOMMENDATIONS API] Found', recommendations?.length || 0, 'recommendations');
+    console.log('[RECOMMENDATIONS API] ✓ Query successful, found', recommendations?.length || 0, 'recommendations');
 
-    // RLS policy already filters by user's clients
     const result = recommendations || [];
-
+    
+    console.log('[RECOMMENDATIONS API] ========== REQUEST END (SUCCESS) ==========');
     return NextResponse.json(result);
+    
   } catch (error) {
-    console.error('[RECOMMENDATIONS API] Unexpected error:', error);
+    console.error('[RECOMMENDATIONS API] ========== CRITICAL ERROR ==========');
+    console.error('[RECOMMENDATIONS API] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('[RECOMMENDATIONS API] Error message:', error instanceof Error ? error.message : String(error));
+    console.error('[RECOMMENDATIONS API] Stack trace:', error instanceof Error ? error.stack : 'N/A');
+    console.error('[RECOMMENDATIONS API] ========================================');
+    
     return NextResponse.json(
-      { error: 'Beklenmeyen bir hata oluştu', details: error instanceof Error ? error.message : String(error) },
+      { 
+        error: 'Sunucu hatası', 
+        details: error instanceof Error ? error.message : 'Bilinmeyen hata',
+        type: error instanceof Error ? error.constructor.name : typeof error
+      },
       { status: 500 }
     );
   }

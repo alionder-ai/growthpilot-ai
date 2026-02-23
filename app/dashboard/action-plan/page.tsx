@@ -79,16 +79,12 @@ export default function ActionPlanPage() {
       
       console.log('[ACTION PLAN] Response status:', response.status);
       
+      // Handle all non-200 responses as "no data"
       if (!response.ok) {
-        if (response.status === 404) {
-          console.log('[ACTION PLAN] No action plan found');
-          setActionPlan(null);
-          return;
-        }
-        
-        const errorData = await response.json().catch(() => ({}));
-        console.error('[ACTION PLAN] Error response:', errorData);
-        throw new Error(errorData.error || 'Aksiyon planı yüklenemedi');
+        console.log('[ACTION PLAN] No action plan found or error occurred');
+        setActionPlan(null);
+        setLoading(false);
+        return;
       }
       
       const data = await response.json();
@@ -102,7 +98,7 @@ export default function ActionPlanPage() {
       }
     } catch (err) {
       console.error('[ACTION PLAN] Fetch error:', err);
-      setError(err instanceof Error ? err.message : 'Aksiyon planı yüklenirken hata oluştu');
+      // Don't show error to user, just show empty state
       setActionPlan(null);
     } finally {
       setLoading(false);
