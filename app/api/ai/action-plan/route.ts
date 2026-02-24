@@ -76,9 +76,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch recent metrics for this client (last 7 days)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    // Fetch recent metrics for this client (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     // Get campaigns for this client
     const { data: campaigns, error: campaignsError } = await supabase
@@ -133,12 +133,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get metrics for last 7 days
+    // Get metrics for last 30 days
     const { data: metrics, error: metricsError } = await supabase
       .from('meta_metrics')
       .select('spend, roas, conversions, frequency, add_to_cart, purchases, cpc, ctr')
       .in('ad_id', adIds)
-      .gte('date', sevenDaysAgo.toISOString().split('T')[0]);
+      .gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
 
     if (metricsError) {
       console.error('Error fetching metrics:', metricsError);
