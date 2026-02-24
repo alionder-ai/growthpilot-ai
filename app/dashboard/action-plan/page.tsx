@@ -278,14 +278,18 @@ export default function ActionPlanPage() {
                   </svg>
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Aksiyon Planı Özelliği Yakında
+                  Bu müşteri için aksiyon planı oluşturulmamış
                 </h3>
-                <p className="text-gray-600 mb-4">
-                  Bu müşteri için henüz aksiyon planı oluşturulmamış. Aksiyon planı özelliği şu anda geliştirme aşamasındadır.
+                <p className="text-gray-600 mb-6">
+                  Yapay zeka destekli aksiyon planı oluşturmak için yukarıdaki "Yeni Plan Oluştur" butonuna tıklayın.
                 </p>
-                <p className="text-sm text-gray-500">
-                  Aksiyon planları, yapay zeka destekli günlük öncelikli görevler içerecektir.
-                </p>
+                <Button
+                  onClick={generateActionPlan}
+                  disabled={generating}
+                  size="lg"
+                >
+                  {generating ? 'Oluşturuluyor...' : 'İlk Planı Oluştur'}
+                </Button>
               </div>
             </Card>
           )}
