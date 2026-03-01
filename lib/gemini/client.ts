@@ -32,6 +32,7 @@ export class GeminiClient {
 
   /**
    * Generate content with exponential backoff retry logic
+   * Special handling for rate limit (429) errors with longer backoff
    */
   async generateContent(
     prompt: string,
@@ -59,15 +60,28 @@ export class GeminiClient {
         return text;
       } catch (error) {
         lastError = error as Error;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        
+        // Check if it's a rate limit error (429)
+        const isRateLimitError = errorMessage.includes('429') || 
+                                 errorMessage.includes('quota') || 
+                                 errorMessage.includes('rate limit');
         
         // Log error for monitoring
-        console.error(`Gemini API attempt ${attempt + 1} failed:`, error);
+        console.error(`Gemini API attempt ${attempt + 1} failed:`, errorMessage);
 
         // Don't retry on last attempt
         if (attempt < MAX_RETRIES - 1) {
-          // Exponential backoff: 1s, 2s, 4s
-          const backoffMs = INITIAL_BACKOFF_MS * Math.pow(2, attempt);
+          // Use longer backoff for rate limit errors: 3s, 6s, 12s
+          // Regular errors: 1s, 2s, 4s
+          const baseBackoff = isRateLimitError ? 3000 : INITIAL_BACKOFF_MS;
+          const backoffMs = baseBackoff * Math.pow(2, attempt);
+          
+          console.log(`Retrying after ${backoffMs}ms (attempt ${attempt + 2}/${MAX_RETRIES})...`);
           await this.sleep(backoffMs);
+        } else if (isRateLimitError) {
+          // Provide user-friendly error for rate limits
+          throw new Error('API rate limit exceeded. Please try again in a few moments.');
         }
       }
     }
@@ -80,6 +94,7 @@ export class GeminiClient {
 
   /**
    * Generate content with JSON response parsing
+   * Robust extraction of JSON from various markdown formats
    */
   async generateJSON<T>(
     prompt: string,
@@ -88,13 +103,19 @@ export class GeminiClient {
     const response = await this.generateContent(prompt, maxTokens);
     
     try {
-      // Extract JSON from markdown code blocks if present
-      const jsonMatch = response.match(/```json\n([\s\S]*?)\n```/);
-      const jsonText = jsonMatch ? jsonMatch[1] : response;
+      // Clean response text - remove markdown code blocks and extra whitespace
+      let cleanedText = response.trim();
       
-      return JSON.parse(jsonText.trim()) as T;
+      // Remove markdown code blocks (```json...``` or ```...```)
+      cleanedText = cleanedText.replace(/^```(?:json)?\s*\n?/i, '');
+      cleanedText = cleanedText.replace(/\n?```\s*$/i, '');
+      cleanedText = cleanedText.trim();
+      
+      // Parse JSON
+      return JSON.parse(cleanedText) as T;
     } catch (error) {
       console.error('Failed to parse Gemini JSON response:', response);
+      console.error('Parse error:', error);
       throw new Error('Invalid JSON response from Gemini API');
     }
   }

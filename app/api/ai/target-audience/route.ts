@@ -83,11 +83,26 @@ export async function POST(request: NextRequest) {
       console.log('[TARGET AUDIENCE API] ✓ Response validated and parsed');
     } catch (error) {
       console.error('[TARGET AUDIENCE API] ✗ Error generating analysis:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       
-      // Check if it's a timeout error
-      if (error instanceof Error && error.message.includes('timeout')) {
+      // Check for specific error types
+      if (errorMessage.includes('rate limit') || errorMessage.includes('quota')) {
+        return NextResponse.json(
+          { error: 'API kullanım limiti aşıldı. Lütfen birkaç dakika sonra tekrar deneyin.' },
+          { status: 429 }
+        );
+      }
+      
+      if (errorMessage.includes('timeout')) {
         return NextResponse.json(
           { error: 'Bağlantı zaman aşımına uğradı. Lütfen internet bağlantınızı kontrol edin.' },
+          { status: 500 }
+        );
+      }
+      
+      if (errorMessage.includes('Invalid JSON')) {
+        return NextResponse.json(
+          { error: 'AI yanıtı işlenirken bir hata oluştu. Lütfen tekrar deneyin.' },
           { status: 500 }
         );
       }

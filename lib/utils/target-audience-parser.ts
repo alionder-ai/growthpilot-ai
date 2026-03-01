@@ -35,20 +35,27 @@ export interface StrategicAnalysis {
 }
 
 /**
- * Extract JSON from markdown code blocks
- * Handles responses wrapped in ```json...``` or ```...```
+ * Extract JSON from markdown code blocks and clean response
+ * Handles responses wrapped in ```json...```, ```...```, or plain JSON
+ * Also removes any leading/trailing text outside JSON object
  */
 function extractJSONFromMarkdown(text: string): string {
-  // Try to extract JSON from markdown code blocks
-  const codeBlockRegex = /```(?:json)?\s*\n?([\s\S]*?)\n?```/;
-  const match = text.match(codeBlockRegex);
+  let cleaned = text.trim();
   
-  if (match && match[1]) {
-    return match[1].trim();
+  // Remove markdown code blocks (```json...``` or ```...```)
+  cleaned = cleaned.replace(/^```(?:json)?\s*\n?/i, '');
+  cleaned = cleaned.replace(/\n?```\s*$/i, '');
+  cleaned = cleaned.trim();
+  
+  // Find the first { and last } to extract only the JSON object
+  const firstBrace = cleaned.indexOf('{');
+  const lastBrace = cleaned.lastIndexOf('}');
+  
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    cleaned = cleaned.substring(firstBrace, lastBrace + 1);
   }
   
-  // If no code block found, return original text
-  return text.trim();
+  return cleaned.trim();
 }
 
 /**
