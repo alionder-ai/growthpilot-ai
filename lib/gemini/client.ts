@@ -44,7 +44,6 @@ export class GeminiClient {
         generationConfig: {
           maxOutputTokens: maxTokens,
           temperature: 0.7,
-          ...(useJsonMode && { responseMimeType: 'application/json' }),
         },
       });
 
