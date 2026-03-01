@@ -201,7 +201,9 @@ Ayrıca her segment için "Reddedilemez Teklif" oluştur:
 - Spesifik ve uygulanabilir içerik üret, genel tavsiyelerden kaçın
 - Sektöre özgü örnekler ver
 
-JSON formatında yanıt ver:
+KRİTİK: Çıktını KESİNLİKLE aşağıdaki JSON formatında ve anahtar kelimeleri (key names) BİREBİR AYNI tutarak ver.
+Anahtar isimleri değiştirme, ekleme yapma, sadece değerleri doldur:
+
 {
   "mukemmelMusteri": {
     "profil": "string",
@@ -249,7 +251,7 @@ JSON formatında yanıt ver:
   }
 }
 
-Sadece JSON yanıtı ver, başka açıklama ekleme.`;
+TEKRAR: Yukarıdaki JSON şablonundaki anahtar isimlerini (mukemmelMusteri, icselArzular, dissalArzular, icselEngeller, dissalEngeller, ihtiyaclar, mecburiMusteri, gereksizMusteri, reddedilemezTeklifler, mukemmelMusteriTeklif, mecburiMusteriTeklif, gereksizMusteriTeklif) AYNEN kullan.`;
 }
 
 export type { ActionPlanContext, StrategyCardContext, CreativeContext };

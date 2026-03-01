@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
       );
 
       console.log('[TARGET AUDIENCE API] ✓ Received response from Gemini API');
+      console.log('[TARGET AUDIENCE API] RAW GEMINI RESPONSE:', JSON.stringify(rawResponse, null, 2));
 
       // Parse and validate response structure
       analysis = parseTargetAudienceResponse(JSON.stringify(rawResponse));
