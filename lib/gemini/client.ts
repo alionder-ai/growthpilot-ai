@@ -36,17 +36,20 @@ export class GeminiClient {
    */
   async generateContent(
     prompt: string,
-    maxTokens: number = TOKEN_LIMITS.ACTION_PLAN
+    maxTokens: number = TOKEN_LIMITS.ACTION_PLAN,
+    useJsonMode: boolean = false
   ): Promise<string> {
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
+        // SINGLE API CALL - This is the ONLY place where Gemini API is called
         const result = await this.model.generateContent({
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig: {
             maxOutputTokens: maxTokens,
             temperature: 0.7,
+            ...(useJsonMode && { responseMimeType: 'application/json' }),
           },
         });
 
@@ -93,26 +96,20 @@ export class GeminiClient {
   }
 
   /**
-   * Generate content with JSON response parsing
-   * Robust extraction of JSON from various markdown formats
+   * Generate content with JSON response
+   * Uses Gemini's native JSON mode (responseMimeType: "application/json")
+   * This guarantees valid JSON output without any markdown formatting
    */
   async generateJSON<T>(
     prompt: string,
     maxTokens: number = TOKEN_LIMITS.ACTION_PLAN
   ): Promise<T> {
-    const response = await this.generateContent(prompt, maxTokens);
+    // Use JSON mode - Gemini will return pure JSON, no markdown cleanup needed
+    const response = await this.generateContent(prompt, maxTokens, true);
     
     try {
-      // Clean response text - remove markdown code blocks and extra whitespace
-      let cleanedText = response.trim();
-      
-      // Remove markdown code blocks (```json...``` or ```...```)
-      cleanedText = cleanedText.replace(/^```(?:json)?\s*\n?/i, '');
-      cleanedText = cleanedText.replace(/\n?```\s*$/i, '');
-      cleanedText = cleanedText.trim();
-      
-      // Parse JSON
-      return JSON.parse(cleanedText) as T;
+      // Direct parse - response is already valid JSON from Gemini
+      return JSON.parse(response) as T;
     } catch (error) {
       console.error('Failed to parse Gemini JSON response:', response);
       console.error('Parse error:', error);
