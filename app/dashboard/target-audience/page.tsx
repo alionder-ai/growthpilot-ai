@@ -5,28 +5,28 @@ import { TargetAudienceForm } from '@/components/ai/TargetAudienceForm';
 import { AnalysisDisplay } from '@/components/ai/AnalysisDisplay';
 import AnalysisHistory from '@/components/ai/AnalysisHistory';
 import { StrategicAnalysis } from '@/lib/types/target-audience';
-import { useToast } from '@/lib/contexts/ToastContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles, History, X } from 'lucide-react';
+import { Sparkles, History, X, CheckCircle2, AlertCircle } from 'lucide-react';
 
-// Force dynamic rendering to avoid prerendering issues with ToastContext
+// Force dynamic rendering to avoid prerendering issues
 export const dynamic = 'force-dynamic';
 
 export default function TargetAudiencePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [analysis, setAnalysis] = useState<StrategicAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [historyData, setHistoryData] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const { toast } = useToast();
 
   const handleSubmit = async (industry: string) => {
     setIsLoading(true);
     setError(null);
+    setSuccessMessage(null);
     
     try {
       const response = await fetch('/api/ai/target-audience', {
@@ -50,17 +50,15 @@ export default function TargetAudiencePage() {
 
       setAnalysis(data.analysis);
       setError(null);
+      setSuccessMessage('Analiz başarıyla tamamlandı!');
       
-      // Show success toast
-      toast.success('Analiz Tamamlandı', 'Hedef kitle analizi başarıyla oluşturuldu');
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       console.error('Error generating analysis:', err);
       const errorMessage = err instanceof Error ? err.message : 'Analiz oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.';
       setError(errorMessage);
       setAnalysis(null);
-      
-      // Show error toast
-      toast.error('Hata', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -81,7 +79,7 @@ export default function TargetAudiencePage() {
       setTotalPages(data.pagination.totalPages);
     } catch (err) {
       console.error('Error fetching history:', err);
-      toast.error('Hata', 'Geçmiş analizler yüklenemedi');
+      setError('Geçmiş analizler yüklenemedi');
     } finally {
       setHistoryLoading(false);
     }
@@ -101,7 +99,7 @@ export default function TargetAudiencePage() {
       setError(null);
     } catch (err) {
       console.error('Error loading analysis:', err);
-      toast.error('Hata', 'Analiz yüklenemedi');
+      setError('Analiz yüklenemedi');
     }
   };
 
@@ -155,6 +153,40 @@ export default function TargetAudiencePage() {
           )}
         </Button>
       </header>
+
+      {/* Success Message */}
+      {successMessage && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
+          <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-green-900">{successMessage}</p>
+          </div>
+          <button
+            onClick={() => setSuccessMessage(null)}
+            className="text-green-600 hover:text-green-800"
+            aria-label="Kapat"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-red-900">{error}</p>
+          </div>
+          <button
+            onClick={() => setError(null)}
+            className="text-red-600 hover:text-red-800"
+            aria-label="Kapat"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* History View */}
       {showHistory && (
