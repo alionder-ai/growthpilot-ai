@@ -155,10 +155,18 @@ export async function POST(request: NextRequest) {
     console.error('[TARGET AUDIENCE API] Error type:', error instanceof Error ? error.constructor.name : typeof error);
     console.error('[TARGET AUDIENCE API] Error message:', error instanceof Error ? error.message : String(error));
     console.error('[TARGET AUDIENCE API] Stack trace:', error instanceof Error ? error.stack : 'N/A');
+    console.error('[TARGET AUDIENCE API] Full error object:', error);
     console.error('[TARGET AUDIENCE API] ========================================');
     
+    // Return detailed error to frontend for debugging
     return NextResponse.json(
-      { error: 'Beklenmeyen bir hata oluştu' },
+      { 
+        success: false,
+        error: 'Beklenmeyen bir hata oluştu',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorDetails: error instanceof Error ? error.stack : String(error),
+        errorType: error instanceof Error ? error.constructor.name : typeof error
+      },
       { status: 500 }
     );
   }
