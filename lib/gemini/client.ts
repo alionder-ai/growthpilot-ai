@@ -23,7 +23,7 @@ export class GeminiClient {
     }
 
     this.client = new GoogleGenerativeAI(key);
-    this.model = this.client.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    this.model = this.client.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
   }
 
   /**
