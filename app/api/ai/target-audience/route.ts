@@ -69,54 +69,67 @@ export async function POST(request: NextRequest) {
     const prompt = buildTargetAudiencePrompt(normalizedIndustry);
 
     let analysis: StrategicAnalysis;
+    let rawResponse: any;
+    
     try {
       // SINGLE API CALL - No retry logic
-      const rawResponse = await geminiClient.generateJSON<any>(
+      rawResponse = await geminiClient.generateJSON<any>(
         prompt,
         TOKEN_LIMITS.TARGET_AUDIENCE
       );
 
       console.log('[TARGET AUDIENCE API] ✓ Received response from Gemini API');
+      console.log('[TARGET AUDIENCE API] RAW GEMINI RESPONSE TYPE:', typeof rawResponse);
       console.log('[TARGET AUDIENCE API] RAW GEMINI RESPONSE:', JSON.stringify(rawResponse, null, 2));
-
-      // Parse and validate response structure
-      analysis = parseTargetAudienceResponse(JSON.stringify(rawResponse));
-      console.log('[TARGET AUDIENCE API] ✓ Response validated and parsed');
     } catch (error) {
-      console.error('[TARGET AUDIENCE API] ========== FATAL ERROR ==========');
+      console.error('[TARGET AUDIENCE API] ========== GEMINI API ERROR ==========');
       console.error('[TARGET AUDIENCE API] Error type:', error instanceof Error ? error.constructor.name : typeof error);
       console.error('[TARGET AUDIENCE API] Error message:', error instanceof Error ? error.message : String(error));
       console.error('[TARGET AUDIENCE API] Error stack:', error instanceof Error ? error.stack : 'N/A');
-      console.error('[TARGET AUDIENCE API] Full error object:', error);
+      console.error('[TARGET AUDIENCE API] Full error object:', JSON.stringify(error, null, 2));
       console.error('[TARGET AUDIENCE API] =======================================');
       
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      
-      // Check for specific error types
-      if (errorMessage.includes('rate limit') || errorMessage.includes('quota') || errorMessage.includes('429')) {
-        return NextResponse.json(
-          { error: 'API kullanım limiti aşıldı. Lütfen birkaç dakika sonra tekrar deneyin.' },
-          { status: 429 }
-        );
-      }
-      
-      if (errorMessage.includes('timeout')) {
-        return NextResponse.json(
-          { error: 'Bağlantı zaman aşımına uğradı. Lütfen internet bağlantınızı kontrol edin.' },
-          { status: 500 }
-        );
-      }
-      
-      if (errorMessage.includes('Invalid JSON')) {
-        return NextResponse.json(
-          { error: 'AI yanıtı işlenirken bir hata oluştu. Lütfen tekrar deneyin.' },
-          { status: 500 }
-        );
-      }
-      
-      // Generic error message for other failures
       return NextResponse.json(
-        { error: 'Analiz oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.' },
+        { 
+          success: false,
+          error: 'Gemini API hatası',
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorStack: error instanceof Error ? error.stack : undefined,
+          errorType: error instanceof Error ? error.constructor.name : typeof error
+        },
+        { status: 500 }
+      );
+    }
+
+    // Parse and validate response structure
+    try {
+      console.log('[TARGET AUDIENCE API] Step 4b: Parsing response...');
+      
+      // If rawResponse is already an object, pass it directly
+      // If it's a string, parseTargetAudienceResponse will handle it
+      const responseToValidate = typeof rawResponse === 'string' 
+        ? rawResponse 
+        : JSON.stringify(rawResponse);
+      
+      analysis = parseTargetAudienceResponse(responseToValidate);
+      console.log('[TARGET AUDIENCE API] ✓ Response validated and parsed');
+    } catch (error) {
+      console.error('[TARGET AUDIENCE API] ========== PARSER ERROR ==========');
+      console.error('[TARGET AUDIENCE API] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+      console.error('[TARGET AUDIENCE API] Error message:', error instanceof Error ? error.message : String(error));
+      console.error('[TARGET AUDIENCE API] Error stack:', error instanceof Error ? error.stack : 'N/A');
+      console.error('[TARGET AUDIENCE API] Raw response that failed:', JSON.stringify(rawResponse, null, 2));
+      console.error('[TARGET AUDIENCE API] =======================================');
+      
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Yanıt işleme hatası',
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorStack: error instanceof Error ? error.stack : undefined,
+          errorType: error instanceof Error ? error.constructor.name : typeof error,
+          rawResponse: rawResponse
+        },
         { status: 500 }
       );
     }
@@ -151,21 +164,21 @@ export async function POST(request: NextRequest) {
       analysis,
     });
   } catch (error) {
-    console.error('[TARGET AUDIENCE API] ========== CRITICAL ERROR ==========');
+    console.error('[TARGET AUDIENCE API] ========== CRITICAL OUTER ERROR ==========');
     console.error('[TARGET AUDIENCE API] Error type:', error instanceof Error ? error.constructor.name : typeof error);
     console.error('[TARGET AUDIENCE API] Error message:', error instanceof Error ? error.message : String(error));
     console.error('[TARGET AUDIENCE API] Stack trace:', error instanceof Error ? error.stack : 'N/A');
-    console.error('[TARGET AUDIENCE API] Full error object:', error);
+    console.error('[TARGET AUDIENCE API] Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     console.error('[TARGET AUDIENCE API] ========================================');
     
-    // Return detailed error to frontend for debugging
     return NextResponse.json(
       { 
         success: false,
-        error: 'Beklenmeyen bir hata oluştu',
+        error: 'Beklenmeyen sistem hatası',
         errorMessage: error instanceof Error ? error.message : String(error),
-        errorDetails: error instanceof Error ? error.stack : String(error),
-        errorType: error instanceof Error ? error.constructor.name : typeof error
+        errorStack: error instanceof Error ? error.stack : undefined,
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        errorDetails: JSON.stringify(error, Object.getOwnPropertyNames(error))
       },
       { status: 500 }
     );
