@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     let analysis: StrategicAnalysis;
     try {
-      // generateJSON already includes retry logic (3 retries with exponential backoff)
+      // SINGLE API CALL - No retry logic
       const rawResponse = await geminiClient.generateJSON<any>(
         prompt,
         TOKEN_LIMITS.TARGET_AUDIENCE
@@ -83,11 +83,17 @@ export async function POST(request: NextRequest) {
       analysis = parseTargetAudienceResponse(JSON.stringify(rawResponse));
       console.log('[TARGET AUDIENCE API] ✓ Response validated and parsed');
     } catch (error) {
-      console.error('[TARGET AUDIENCE API] ✗ Error generating analysis:', error);
+      console.error('[TARGET AUDIENCE API] ========== FATAL ERROR ==========');
+      console.error('[TARGET AUDIENCE API] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+      console.error('[TARGET AUDIENCE API] Error message:', error instanceof Error ? error.message : String(error));
+      console.error('[TARGET AUDIENCE API] Error stack:', error instanceof Error ? error.stack : 'N/A');
+      console.error('[TARGET AUDIENCE API] Full error object:', error);
+      console.error('[TARGET AUDIENCE API] =======================================');
+      
       const errorMessage = error instanceof Error ? error.message : String(error);
       
       // Check for specific error types
-      if (errorMessage.includes('rate limit') || errorMessage.includes('quota')) {
+      if (errorMessage.includes('rate limit') || errorMessage.includes('quota') || errorMessage.includes('429')) {
         return NextResponse.json(
           { error: 'API kullanım limiti aşıldı. Lütfen birkaç dakika sonra tekrar deneyin.' },
           { status: 429 }

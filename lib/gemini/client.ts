@@ -8,12 +8,8 @@ export const TOKEN_LIMITS = {
   TARGET_AUDIENCE: 2000,
 } as const;
 
-// Retry configuration
-const MAX_RETRIES = 3;
-const INITIAL_BACKOFF_MS = 1000;
-
 /**
- * Gemini API client wrapper with retry logic and token limit enforcement
+ * Gemini API client wrapper - SINGLE REQUEST, NO RETRY
  */
 export class GeminiClient {
   private client: GoogleGenerativeAI;
@@ -31,94 +27,67 @@ export class GeminiClient {
   }
 
   /**
-   * Generate content with exponential backoff retry logic
-   * Special handling for rate limit (429) errors with longer backoff
+   * Generate content - SINGLE API CALL, NO RETRY
+   * If it fails, it throws immediately
    */
   async generateContent(
     prompt: string,
     maxTokens: number = TOKEN_LIMITS.ACTION_PLAN,
     useJsonMode: boolean = false
   ): Promise<string> {
-    let lastError: Error | null = null;
+    try {
+      console.log('[GEMINI CLIENT] Making SINGLE API call to Gemini...');
+      
+      // SINGLE API CALL - This is the ONLY place where Gemini API is called
+      const result = await this.model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          maxOutputTokens: maxTokens,
+          temperature: 0.7,
+          ...(useJsonMode && { responseMimeType: 'application/json' }),
+        },
+      });
 
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      try {
-        // SINGLE API CALL - This is the ONLY place where Gemini API is called
-        const result = await this.model.generateContent({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: {
-            maxOutputTokens: maxTokens,
-            temperature: 0.7,
-            ...(useJsonMode && { responseMimeType: 'application/json' }),
-          },
-        });
+      const response = await result.response;
+      const text = response.text();
 
-        const response = await result.response;
-        const text = response.text();
-
-        if (!text) {
-          throw new Error('Empty response from Gemini API');
-        }
-
-        return text;
-      } catch (error) {
-        lastError = error as Error;
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        
-        // Check if it's a rate limit error (429)
-        const isRateLimitError = errorMessage.includes('429') || 
-                                 errorMessage.includes('quota') || 
-                                 errorMessage.includes('rate limit');
-        
-        // Log error for monitoring
-        console.error(`Gemini API attempt ${attempt + 1} failed:`, errorMessage);
-
-        // Don't retry on last attempt
-        if (attempt < MAX_RETRIES - 1) {
-          // Use longer backoff for rate limit errors: 3s, 6s, 12s
-          // Regular errors: 1s, 2s, 4s
-          const baseBackoff = isRateLimitError ? 3000 : INITIAL_BACKOFF_MS;
-          const backoffMs = baseBackoff * Math.pow(2, attempt);
-          
-          console.log(`Retrying after ${backoffMs}ms (attempt ${attempt + 2}/${MAX_RETRIES})...`);
-          await this.sleep(backoffMs);
-        } else if (isRateLimitError) {
-          // Provide user-friendly error for rate limits
-          throw new Error('API rate limit exceeded. Please try again in a few moments.');
-        }
+      if (!text) {
+        throw new Error('Empty response from Gemini API');
       }
-    }
 
-    // All retries failed
-    throw new Error(
-      `Gemini API failed after ${MAX_RETRIES} attempts: ${lastError?.message}`
-    );
+      console.log('[GEMINI CLIENT] ✓ Received response from Gemini API');
+      return text;
+    } catch (error) {
+      console.error('[GEMINI CLIENT] FATAL ERROR:', error);
+      console.error('[GEMINI CLIENT] Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : 'N/A'
+      });
+      throw error; // Re-throw immediately, no retry
+    }
   }
 
   /**
    * Generate content with JSON response
    * Uses Gemini's native JSON mode (responseMimeType: "application/json")
-   * This guarantees valid JSON output without any markdown formatting
    */
   async generateJSON<T>(
     prompt: string,
     maxTokens: number = TOKEN_LIMITS.ACTION_PLAN
   ): Promise<T> {
-    // Use JSON mode - Gemini will return pure JSON, no markdown cleanup needed
+    // Use JSON mode - Gemini will return pure JSON
     const response = await this.generateContent(prompt, maxTokens, true);
     
     try {
       // Direct parse - response is already valid JSON from Gemini
       return JSON.parse(response) as T;
     } catch (error) {
-      console.error('Failed to parse Gemini JSON response:', response);
-      console.error('Parse error:', error);
+      console.error('[GEMINI CLIENT] JSON PARSE ERROR');
+      console.error('[GEMINI CLIENT] Raw response:', response);
+      console.error('[GEMINI CLIENT] Parse error:', error);
       throw new Error('Invalid JSON response from Gemini API');
     }
-  }
-
-  private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 
