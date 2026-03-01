@@ -286,3 +286,66 @@ export const arbitraryCampaignStatus = () => fc.constantFrom('ACTIVE', 'PAUSED',
  * Generate arbitrary priority level
  */
 export const arbitraryPriority = () => fc.constantFrom('high', 'medium', 'low');
+
+/**
+ * Generate arbitrary scored item (for target audience analysis)
+ */
+export const arbitraryScoredItem = () =>
+  fc.record({
+    text: fc.string({ minLength: 5, maxLength: 200 }),
+    score: fc.integer({ min: 1, max: 10 }),
+  });
+
+/**
+ * Generate arbitrary customer segment (for target audience analysis)
+ */
+export const arbitraryCustomerSegment = () =>
+  fc.record({
+    profil: fc.string({ minLength: 20, maxLength: 500 }),
+    icselArzular: fc.array(arbitraryScoredItem(), { minLength: 3, maxLength: 10 }),
+    dissalArzular: fc.array(arbitraryScoredItem(), { minLength: 3, maxLength: 10 }),
+    icselEngeller: fc.array(arbitraryScoredItem(), { minLength: 3, maxLength: 10 }),
+    dissalEngeller: fc.array(arbitraryScoredItem(), { minLength: 3, maxLength: 10 }),
+    ihtiyaclar: fc.array(arbitraryScoredItem(), { minLength: 3, maxLength: 10 }),
+  });
+
+/**
+ * Generate arbitrary unnecessary customer (for target audience analysis)
+ */
+export const arbitraryUnnecessaryCustomer = () =>
+  fc.record({
+    profil: fc.string({ minLength: 20, maxLength: 500 }),
+  });
+
+/**
+ * Generate arbitrary irresistible offers (for target audience analysis)
+ */
+export const arbitraryIrresistibleOffers = () =>
+  fc.record({
+    mukemmelMusteriTeklif: fc.string({ minLength: 20, maxLength: 500 }),
+    mecburiMusteriTeklif: fc.string({ minLength: 20, maxLength: 500 }),
+    gereksizMusteriTeklif: fc.string({ minLength: 20, maxLength: 500 }),
+  });
+
+/**
+ * Generate arbitrary strategic analysis (for target audience analysis)
+ */
+export const arbitraryStrategicAnalysis = () =>
+  fc.record({
+    mukemmelMusteri: arbitraryCustomerSegment(),
+    mecburiMusteri: arbitraryCustomerSegment(),
+    gereksizMusteri: arbitraryUnnecessaryCustomer(),
+    reddedilemezTeklifler: arbitraryIrresistibleOffers(),
+  });
+
+/**
+ * Generate arbitrary target audience analysis record
+ */
+export const arbitraryTargetAudienceAnalysis = () =>
+  fc.record({
+    id: fc.uuid(),
+    user_id: fc.uuid(),
+    industry: fc.string({ minLength: 3, maxLength: 100 }),
+    analysis_data: arbitraryStrategicAnalysis(),
+    created_at: fc.date({ min: new Date('2020-01-01'), max: new Date() }).map(d => d.toISOString()),
+  });

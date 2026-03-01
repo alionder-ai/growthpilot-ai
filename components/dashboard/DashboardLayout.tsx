@@ -57,6 +57,11 @@ const navigationItems: NavItem[] = [
     icon: <Lightbulb className="w-5 h-5" />,
   },
   {
+    href: '/dashboard/target-audience',
+    label: 'Hedef Kitle Analizi',
+    icon: <Target className="w-5 h-5" />,
+  },
+  {
     href: '/dashboard/reports',
     label: 'Raporlar',
     icon: <FileText className="w-5 h-5" />,

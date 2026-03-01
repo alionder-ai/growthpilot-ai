@@ -43,6 +43,16 @@ interface CreativeContext {
 }
 
 /**
+ * Token limits for different prompt types
+ */
+export const TOKEN_LIMITS = {
+  ACTION_PLAN: 500,
+  STRATEGY_CARD: 300,
+  CREATIVE_CONTENT: 1000,
+  TARGET_AUDIENCE: 2000,
+} as const;
+
+/**
  * Build action plan prompt for Gemini API
  * Requests top 3 priority actions in Turkish
  */
@@ -150,6 +160,93 @@ JSON formatında yanıt ver:
       ${context.contentType === 'voiceover' ? ',\n      "tone_notes": "string",\n      "pacing_notes": "string"' : ''}
     }
   ]
+}
+
+Sadece JSON yanıtı ver, başka açıklama ekleme.`;
+}
+
+/**
+ * Build target audience analysis prompt for Gemini API
+ * Requests strategic analysis based on Alex Hormozi's Grand Slam Offer methodology
+ * Returns customer segmentation and irresistible offers in Turkish
+ */
+export function buildTargetAudiencePrompt(industry: string): string {
+  return `Sen bir pazarlama stratejisti ve Alex Hormozi'nin Grand Slam Offer (Reddedilemez Teklif) metodolojisinde uzmansın.
+
+Sektör: ${industry}
+
+Bu sektör için detaylı bir hedef kitle analizi ve teklif stratejisi oluştur. Alex Hormozi'nin Grand Slam Offer formülünü kullanarak üç müşteri segmenti belirle:
+
+1. MÜKEMMEL MÜŞTERİ (Düşük Efor, Yüksek Kar)
+2. MECBURİ MÜŞTERİ (Yüksek Efor, Yüksek Kar)
+3. GEREKSİZ MÜŞTERİ (Yüksek Efor, Düşük Kar)
+
+Her segment için:
+- Detaylı müşteri profili
+- İçsel Arzular (minimum 3 adet, önem skoru 1-10)
+- Dışsal Arzular (minimum 3 adet, önem skoru 1-10)
+- İçsel Engeller (minimum 3 adet, önem skoru 1-10)
+- Dışsal Engeller (minimum 3 adet, önem skoru 1-10)
+- İhtiyaçlar (minimum 3 adet, önem skoru 1-10)
+
+Ayrıca her segment için "Reddedilemez Teklif" oluştur:
+- Mükemmel Müşteri için: Maksimum değer, kolay satış
+- Mecburi Müşteri için: Yüksek değer, ama daha fazla eğitim/destek gerekli
+- Gereksiz Müşteri için: Filtreleme veya minimum efor teklifi
+
+ÖNEMLI:
+- Tüm içerik Türkçe olmalı
+- Resmi iş Türkçesi kullan (siz formu)
+- Önem skorları 1-10 arası tam sayı olmalı
+- Spesifik ve uygulanabilir içerik üret, genel tavsiyelerden kaçın
+- Sektöre özgü örnekler ver
+
+JSON formatında yanıt ver:
+{
+  "mukemmelMusteri": {
+    "profil": "string",
+    "icselArzular": [
+      { "text": "string", "score": number }
+    ],
+    "dissalArzular": [
+      { "text": "string", "score": number }
+    ],
+    "icselEngeller": [
+      { "text": "string", "score": number }
+    ],
+    "dissalEngeller": [
+      { "text": "string", "score": number }
+    ],
+    "ihtiyaclar": [
+      { "text": "string", "score": number }
+    ]
+  },
+  "mecburiMusteri": {
+    "profil": "string",
+    "icselArzular": [
+      { "text": "string", "score": number }
+    ],
+    "dissalArzular": [
+      { "text": "string", "score": number }
+    ],
+    "icselEngeller": [
+      { "text": "string", "score": number }
+    ],
+    "dissalEngeller": [
+      { "text": "string", "score": number }
+    ],
+    "ihtiyaclar": [
+      { "text": "string", "score": number }
+    ]
+  },
+  "gereksizMusteri": {
+    "profil": "string"
+  },
+  "reddedilemezTeklifler": {
+    "mukemmelMusteriTeklif": "string",
+    "mecburiMusteriTeklif": "string",
+    "gereksizMusteriTeklif": "string"
+  }
 }
 
 Sadece JSON yanıtı ver, başka açıklama ekleme.`;
