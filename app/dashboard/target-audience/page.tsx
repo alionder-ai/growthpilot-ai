@@ -10,6 +10,9 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Sparkles, History, X } from 'lucide-react';
 
+// Force dynamic rendering to avoid prerendering issues with ToastContext
+export const dynamic = 'force-dynamic';
+
 export default function TargetAudiencePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [analysis, setAnalysis] = useState<StrategicAnalysis | null>(null);
