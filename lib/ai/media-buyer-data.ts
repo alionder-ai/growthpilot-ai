@@ -5,7 +5,7 @@
  * Fetches campaign, ad sets, ads, and 30-day metrics from database.
  */
 
-import { createClient as createServiceClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 import { CampaignData, AggregatedMetrics } from '@/lib/types/media-buyer';
 import { MEDIA_BUYER_ERRORS } from '@/lib/ai/prompts';
 
@@ -21,10 +21,11 @@ export async function collectCampaignData(
   campaignId: string,
   userId: string
 ): Promise<CampaignData> {
-  const supabase = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = await createClient();
+
+  // DEBUG - environment variables kontrol
+  console.log('SUPABASE_URL exists:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+  console.log('SERVICE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   // Get campaign (campaign_name is correct per schema)
   const { data: campaign, error: campaignError } = await supabase
@@ -33,14 +34,8 @@ export async function collectCampaignData(
     .eq('campaign_id', campaignId)
     .single();
 
-  if (campaignError) {
-    console.error('[MEDIA BUYER DATA] Campaign query error:', campaignError);
-    throw new Error(`Veritabanı hatası: ${campaignError.message}`);
-  }
-
-  if (!campaign) {
-    console.error('[MEDIA BUYER DATA] Campaign not found in database:', campaignId);
-    throw new Error('Kampanya veritabanında bulunamadı. Lütfen önce Meta Ads senkronizasyonu yapın (Kampanyalar sayfasından "Senkronize Et" butonuna tıklayın).');
+  if (campaignError || !campaign) {
+    throw new Error(`CAMPAIGN_DEBUG: id=${campaignId}, error=${campaignError?.message}, code=${campaignError?.code}`);
   }
 
   // Get client separately (no join)
