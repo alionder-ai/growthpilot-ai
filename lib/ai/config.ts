@@ -13,7 +13,8 @@ export type AIFeature =
   | 'action_plan'
   | 'strategy_card'
   | 'creative'
-  | 'recommendations';
+  | 'recommendations'
+  | 'media_buyer';
 
 /**
  * Feature-to-provider mapping
@@ -27,4 +28,5 @@ export const AI_CONFIG: Record<AIFeature, AIProvider> = {
   strategy_card: 'groq',
   creative: 'groq',
   recommendations: 'groq',
+  media_buyer: 'groq',
 };

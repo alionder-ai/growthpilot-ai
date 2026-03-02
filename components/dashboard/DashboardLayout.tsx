@@ -4,6 +4,7 @@ import { type ReactNode, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  Bot,
   FileText,
   LayoutDashboard,
   Lightbulb,
@@ -45,6 +46,11 @@ const navigationItems: NavItem[] = [
     href: '/dashboard/campaigns',
     label: 'Kampanyalar',
     icon: <Target className="w-5 h-5" />,
+  },
+  {
+    href: '/dashboard/ai-media-buyer',
+    label: 'AI Media Buyer',
+    icon: <Bot className="w-5 h-5" />,
   },
   {
     href: '/dashboard/action-plan',
