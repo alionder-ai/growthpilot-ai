@@ -15,7 +15,7 @@
 
 ## External APIs
 - **Meta Graph API**: Campaign data synchronization
-- **Google Gemini API**: AI-powered recommendations and content generation (using gemini-1.5-flash model)
+- **Groq API**: AI-powered recommendations and content generation (using llama-3.3-70b-versatile model)
 
 ## Deployment
 - **Platform**: Vercel (recommended)
@@ -58,7 +58,7 @@ Required environment variables:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `META_APP_ID`
 - `META_APP_SECRET`
-- `GEMINI_API_KEY`
+- `GROQ_API_KEY`
 - `ENCRYPTION_KEY` (for AES-256 token encryption)
 
 ## Performance Considerations
