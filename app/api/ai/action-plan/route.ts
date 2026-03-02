@@ -253,7 +253,7 @@ export async function POST(request: NextRequest) {
     if (insertError) {
       console.error('Error storing action plan:', insertError);
       return NextResponse.json(
-        { error: 'Aksiyon planı kaydedilirken hata oluştu' },
+        { error: 'Aksiyon planı kaydedilirken hata oluştu', details: insertError.message, code: insertError.code },
         { status: 500 }
       );
     }
