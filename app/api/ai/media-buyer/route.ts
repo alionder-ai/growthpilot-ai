@@ -43,7 +43,21 @@ export async function POST(request: NextRequest) {
       .eq('campaign_id', campaignId)
       .single();
 
-    if (campaignError || !campaign) {
+    if (campaignError) {
+      console.error('Campaign query error:', campaignError);
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Kampanya sorgu hatası',
+          details: campaignError.message,
+          code: campaignError.code,
+          campaignId
+        },
+        { status: 404 }
+      );
+    }
+
+    if (!campaign) {
       return NextResponse.json(
         { success: false, error: MEDIA_BUYER_ERRORS.CAMPAIGN_NOT_FOUND },
         { status: 404 }
