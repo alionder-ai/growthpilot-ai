@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getGeminiClient, TOKEN_LIMITS } from '@/lib/gemini/client';
+import { generateAI, TOKEN_LIMITS } from '@/lib/ai';
 import { buildTargetAudiencePrompt } from '@/lib/gemini/prompts';
 import { parseTargetAudienceResponse, type StrategicAnalysis } from '@/lib/utils/target-audience-parser';
 
@@ -63,26 +63,26 @@ export async function POST(request: NextRequest) {
     const normalizedIndustry = industry.trim();
     console.log('[TARGET AUDIENCE API] ✓ Normalized industry:', normalizedIndustry);
 
-    // Step 3: Generate analysis using Gemini API with retry logic
+    // Step 3: Generate analysis using AI abstraction layer
     console.log('[TARGET AUDIENCE API] Step 4: Generating strategic analysis...');
-    const geminiClient = getGeminiClient();
     const prompt = buildTargetAudiencePrompt(normalizedIndustry);
 
     let analysis: StrategicAnalysis;
     let rawResponse: any;
     
     try {
-      // SINGLE API CALL - No retry logic
-      rawResponse = await geminiClient.generateJSON<any>(
+      // Use AI abstraction layer (Groq)
+      rawResponse = await generateAI<any>(
+        'target_audience',
         prompt,
         TOKEN_LIMITS.TARGET_AUDIENCE
       );
 
-      console.log('[TARGET AUDIENCE API] ✓ Received response from Gemini API');
-      console.log('[TARGET AUDIENCE API] RAW GEMINI RESPONSE TYPE:', typeof rawResponse);
-      console.log('[TARGET AUDIENCE API] RAW GEMINI RESPONSE:', JSON.stringify(rawResponse, null, 2));
+      console.log('[TARGET AUDIENCE API] ✓ Received response from AI API');
+      console.log('[TARGET AUDIENCE API] RAW AI RESPONSE TYPE:', typeof rawResponse);
+      console.log('[TARGET AUDIENCE API] RAW AI RESPONSE:', JSON.stringify(rawResponse, null, 2));
     } catch (error) {
-      console.error('[TARGET AUDIENCE API] ========== GEMINI API ERROR ==========');
+      console.error('[TARGET AUDIENCE API] ========== AI API ERROR ==========');
       console.error('[TARGET AUDIENCE API] Error type:', error instanceof Error ? error.constructor.name : typeof error);
       console.error('[TARGET AUDIENCE API] Error message:', error instanceof Error ? error.message : String(error));
       console.error('[TARGET AUDIENCE API] Error stack:', error instanceof Error ? error.stack : 'N/A');
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           success: false,
-          error: 'Gemini API hatası',
+          error: 'AI API hatası',
           errorMessage: error instanceof Error ? error.message : String(error),
           errorStack: error instanceof Error ? error.stack : undefined,
           errorType: error instanceof Error ? error.constructor.name : typeof error
