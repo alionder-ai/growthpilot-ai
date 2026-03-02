@@ -24,6 +24,7 @@ export async function collectCampaignData(
   const supabase = await createClient();
 
   // Fetch campaign with client and commission model
+  // RLS policies automatically filter by user ownership
   const { data: campaign, error: campaignError } = await supabase
     .from('campaigns')
     .select(`
@@ -31,11 +32,13 @@ export async function collectCampaignData(
       campaign_name,
       status,
       meta_campaign_id,
-      client:clients!inner (
+      client_id,
+      clients!inner (
         client_id,
         client_name,
         industry,
-        commission_model:commission_models (
+        user_id,
+        commission_models (
           model_type,
           rate,
           target_roas
@@ -43,10 +46,15 @@ export async function collectCampaignData(
       )
     `)
     .eq('campaign_id', campaignId)
-    .eq('client.user_id', userId)
     .single();
 
   if (campaignError || !campaign) {
+    throw new Error(MEDIA_BUYER_ERRORS.CAMPAIGN_NOT_FOUND);
+  }
+
+  // Verify ownership (RLS should handle this, but double-check)
+  const client = Array.isArray(campaign.clients) ? campaign.clients[0] : campaign.clients;
+  if (client.user_id !== userId) {
     throw new Error(MEDIA_BUYER_ERRORS.CAMPAIGN_NOT_FOUND);
   }
 
@@ -91,11 +99,10 @@ export async function collectCampaignData(
     throw new Error(MEDIA_BUYER_ERRORS.INSUFFICIENT_DATA);
   }
 
-  // Extract client and commission model
-  const client = Array.isArray(campaign.client) ? campaign.client[0] : campaign.client;
-  const commissionModel = Array.isArray(client.commission_model) 
-    ? client.commission_model[0] 
-    : client.commission_model;
+  // Extract commission model
+  const commissionModel = Array.isArray(client.commission_models) 
+    ? client.commission_models[0] 
+    : client.commission_models;
 
   if (!commissionModel) {
     throw new Error('Komisyon modeli bulunamadı');
