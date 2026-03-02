@@ -103,11 +103,12 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Media buyer API error:', error);
+    console.error('[AI MEDIA BUYER FATAL ERROR]:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Bilinmeyen hata'
+        error: error instanceof Error ? error.message : 'Bilinmeyen Hata',
+        errorStack: error instanceof Error ? error.stack : undefined
       },
       { status: 500 }
     );
