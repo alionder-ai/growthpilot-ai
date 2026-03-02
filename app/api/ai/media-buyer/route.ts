@@ -13,13 +13,6 @@ import { MEDIA_BUYER_ERRORS } from '@/lib/ai/prompts';
 
 export async function POST(request: NextRequest) {
   try {
-    // DEBUG: Test if request reaches this route
-    return NextResponse.json({
-      success: false,
-      error: 'TEST - kod çalışıyor',
-      body: await request.json()
-    }, { status: 400 });
-
     // Get authenticated user
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -30,6 +23,25 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Debug: check if campaign exists
+    const { data: debugCampaign, error: debugError } = await supabase
+      .from('campaigns')
+      .select('campaign_id, client_id')
+      .eq('campaign_id', 'b62ba7f9-a6f1-4af2-8112-f8be68a78f3e')
+      .single();
+
+    const { data: allCampaigns } = await supabase
+      .from('campaigns')
+      .select('campaign_id, client_id')
+      .limit(5);
+
+    return NextResponse.json({
+      debugCampaign,
+      debugError,
+      allCampaigns,
+      userId: user.id
+    }, { status: 200 });
 
     // Parse request body
     const body = await request.json();
