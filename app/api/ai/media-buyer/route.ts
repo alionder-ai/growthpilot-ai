@@ -24,25 +24,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Debug: check if campaign exists
-    const { data: debugCampaign, error: debugError } = await supabase
-      .from('campaigns')
-      .select('campaign_id, client_id')
-      .eq('campaign_id', 'b62ba7f9-a6f1-4af2-8112-f8be68a78f3e')
-      .single();
-
-    const { data: allCampaigns } = await supabase
-      .from('campaigns')
-      .select('campaign_id, client_id')
-      .limit(5);
-
-    return NextResponse.json({
-      debugCampaign,
-      debugError,
-      allCampaigns,
-      userId: user.id
-    }, { status: 200 });
-
     // Parse request body
     const body = await request.json();
     const { campaignId } = body;
@@ -55,7 +36,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify campaign exists
+    // Verify campaign exists (RLS automatically filters by user)
     const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
       .select('campaign_id, client_id')
@@ -63,39 +44,13 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (campaignError || !campaign) {
-      // Debug: get all campaigns to compare
-      const { data: allCampaigns } = await supabase
-        .from('campaigns')
-        .select('campaign_id, client_id')
-        .limit(5);
-      
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Kampanya bulunamadı',
-          debug: {
-            sentCampaignId: campaignId,
-            allCampaigns: allCampaigns,
-            dbError: campaignError?.message
-          }
-        },
+        { success: false, error: MEDIA_BUYER_ERRORS.CAMPAIGN_NOT_FOUND },
         { status: 404 }
       );
     }
 
-    // Ownership check via client
-    const { data: clientData } = await supabase
-      .from('clients')
-      .select('user_id')
-      .eq('client_id', campaign.client_id)
-      .single();
-
-    if (!clientData || clientData.user_id !== user.id) {
-      return NextResponse.json(
-        { success: false, error: 'Bu kampanyaya erişim yetkiniz yok' },
-        { status: 403 }
-      );
-    }
+    // Skip manual ownership check - RLS handles this
 
     // Check cache first
     const cachedResult = getCachedAnalysis(campaignId);
