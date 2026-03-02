@@ -36,15 +36,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Debug: list all campaigns for this user
-    const { data: allCampaigns } = await supabase
-      .from('campaigns')
-      .select('campaign_id, client_id')
-      .limit(5);
-
-    console.log('All campaigns:', JSON.stringify(allCampaigns));
-    console.log('Looking for campaignId:', campaignId);
-
     // Verify campaign exists
     const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
@@ -53,8 +44,22 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (campaignError || !campaign) {
+      // Debug: get all campaigns to compare
+      const { data: allCampaigns } = await supabase
+        .from('campaigns')
+        .select('campaign_id, client_id')
+        .limit(5);
+      
       return NextResponse.json(
-        { success: false, error: 'Kampanya bulunamadı', details: campaignError?.message, campaignId },
+        {
+          success: false,
+          error: 'Kampanya bulunamadı',
+          debug: {
+            sentCampaignId: campaignId,
+            allCampaigns: allCampaigns,
+            dbError: campaignError?.message
+          }
+        },
         { status: 404 }
       );
     }
