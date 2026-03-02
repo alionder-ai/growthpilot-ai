@@ -7,7 +7,6 @@ import {
   Bot,
   FileText,
   LayoutDashboard,
-  Lightbulb,
   ListChecks,
   Menu,
   Settings,
@@ -43,11 +42,6 @@ const navigationItems: NavItem[] = [
     icon: <Users className="w-5 h-5" />,
   },
   {
-    href: '/dashboard/campaigns',
-    label: 'Kampanyalar',
-    icon: <Target className="w-5 h-5" />,
-  },
-  {
     href: '/dashboard/ai-media-buyer',
     label: 'AI Media Buyer',
     icon: <Bot className="w-5 h-5" />,
@@ -56,11 +50,6 @@ const navigationItems: NavItem[] = [
     href: '/dashboard/action-plan',
     label: 'Aksiyon Planı',
     icon: <ListChecks className="w-5 h-5" />,
-  },
-  {
-    href: '/dashboard/strategy-cards',
-    label: 'Strateji Kartları',
-    icon: <Lightbulb className="w-5 h-5" />,
   },
   {
     href: '/dashboard/target-audience',
