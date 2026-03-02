@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     // Get search params for filtering and pagination
     const searchParams = request.nextUrl.searchParams;
-    const clientId = searchParams.get('client_id');
+    const clientId = searchParams.get('client_id') || searchParams.get('clientId');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
