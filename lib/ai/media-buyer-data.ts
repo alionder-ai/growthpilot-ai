@@ -26,8 +26,7 @@ export async function collectCampaignData(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // Fetch campaign with client and commission model
-  // First, get campaign
+  // Get campaign (campaign_name is correct per schema)
   const { data: campaign, error: campaignError } = await supabase
     .from('campaigns')
     .select('campaign_id, campaign_name, status, meta_campaign_id, client_id')
@@ -44,7 +43,7 @@ export async function collectCampaignData(
     throw new Error('Kampanya veritabanında bulunamadı. Lütfen önce Meta Ads senkronizasyonu yapın (Kampanyalar sayfasından "Senkronize Et" butonuna tıklayın).');
   }
 
-  // Then, get client separately
+  // Get client separately (no join)
   const { data: clientData, error: clientError } = await supabase
     .from('clients')
     .select('client_id, client_name, industry, user_id')
@@ -77,9 +76,10 @@ export async function collectCampaignData(
     throw new Error(MEDIA_BUYER_ERRORS.DATABASE_ERROR);
   }
 
-  // Fetch ads (via ad_set_id)
-  const adSetIds = adSets?.map((as: any) => as.ad_set_id) || [];
+  // Get ad set IDs
+  const adSetIds = (adSets || []).map((as: any) => as.ad_set_id);
 
+  // Fetch ads via ad_set_id
   const { data: ads, error: adsError } = await supabase
     .from('ads')
     .select('ad_id, ad_name, status')
@@ -89,12 +89,13 @@ export async function collectCampaignData(
     throw new Error(MEDIA_BUYER_ERRORS.DATABASE_ERROR);
   }
 
-  // Fetch 30-day metrics (via ad_id)
+  // Get ad IDs
+  const adIds = (ads || []).map((a: any) => a.ad_id);
+
+  // Fetch 30-day metrics via ad_id (meta_metrics only has ad_id, not campaign_id)
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
-
-  const adIds = ads?.map((a: any) => a.ad_id) || [];
 
   const { data: metrics, error: metricsError } = await supabase
     .from('meta_metrics')
