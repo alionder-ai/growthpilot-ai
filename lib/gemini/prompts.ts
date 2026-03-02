@@ -171,42 +171,41 @@ Sadece JSON yanıtı ver, başka açıklama ekleme.`;
  * Returns customer segmentation and irresistible offers in Turkish
  */
 export function buildTargetAudiencePrompt(industry: string): string {
-  return `Sen bir pazarlama stratejisti ve Alex Hormozi'nin Grand Slam Offer (Reddedilemez Teklif) metodolojisinde uzmansın.
+  return `Sen Alex Hormozi'nin "$100M Offers" kitabındaki Grand Slam Offer metodolojisinde uzman bir pazarlama stratejistisin. Türk pazarında faaliyet gösteren işletmeler için derinlemesine hedef kitle analizi yapıyorsun.
 
 Sektör: ${industry}
 
-Bu sektör için detaylı bir hedef kitle analizi ve teklif stratejisi oluştur. Alex Hormozi'nin Grand Slam Offer formülünü kullanarak üç müşteri segmenti belirle:
+Bu sektördeki Türk işletmesi için GERÇEKÇI ve SPESİFİK bir analiz yap. Genel klişelerden kaçın, bu sektörün Türkiye'deki gerçek dinamiklerini yansıt.
 
-1. MÜKEMMEL MÜŞTERİ (Düşük Efor, Yüksek Kar)
-2. MECBURİ MÜŞTERİ (Yüksek Efor, Yüksek Kar)
-3. GEREKSİZ MÜŞTERİ (Yüksek Efor, Düşük Kar)
+MÜKEMMEL MÜŞTERİ: Bu sektörde en kolay satış yapılan, en az itiraz çıkaran, en yüksek kâr bırakan müşteri tipi.
+MECBURİ MÜŞTERİ: Satın almak zorunda hisseden ama süreç uzun ve yorucu olan müşteri.
+GEREKSİZ MÜŞTERİ: Çok efor harcatıp az kazandıran, sürekli fiyat kıran müşteri tipi.
 
-Her segment için:
-- Detaylı müşteri profili
-- İçsel Arzular (minimum 3 adet, önem skoru 1-10)
-- Dışsal Arzular (minimum 3 adet, önem skoru 1-10)
-- İçsel Engeller (minimum 3 adet, önem skoru 1-10)
-- Dışsal Engeller (minimum 3 adet, önem skoru 1-10)
-- İhtiyaçlar (minimum 3 adet, önem skoru 1-10)
+Her segment için TAM OLARAK 10'AR ADET şunları üret:
+- İçsel Arzular (kişinin içinde hissettiği duygusal istekler)
+- Dışsal Arzular (dışarıya göstermek istediği statü, başarı)
+- İçsel Engeller (kendi zihnindeki korkular, şüpheler)
+- Dışsal Engeller (çevre, para, zaman gibi dış faktörler)
+- İhtiyaçlar (gerçekten ihtiyaç duyduğu somut şeyler)
 
-Ayrıca her segment için "Reddedilemez Teklif" oluştur:
-- Mükemmel Müşteri için: Maksimum değer, kolay satış
-- Mecburi Müşteri için: Yüksek değer, ama daha fazla eğitim/destek gerekli
-- Gereksiz Müşteri için: Filtreleme veya minimum efor teklifi
+Her madde için 1-10 arasında önem skoru ver. Türkiye'ye özgü, sektöre spesifik, gerçekçi örnekler kullan.
 
-ÖNEMLI:
-- Tüm içerik Türkçe olmalı
-- Resmi iş Türkçesi kullan (siz formu)
-- Önem skorları 1-10 arası tam sayı olmalı
-- Spesifik ve uygulanabilir içerik üret, genel tavsiyelerden kaçın
-- Sektöre özgü örnekler ver
+TEKLİF OLUŞTURMA KURALLARI:
+1. Önce her segmentin tüm arzu, engel ve ihtiyaçlarından skoru 7-10 arasında olanları belirle
+2. Bu yüksek skorlu maddeleri Alex Hormozi'nin Grand Slam Offer formülüyle birleştir:
+   - Hayal edilen sonucu netleştir (ne elde edecek?)
+   - Ulaşma süresini kısalt (ne kadar sürede?)
+   - Çabayı minimize et (nasıl kolaylaştırıyorsun?)
+   - Başarısızlık riskini ortadan kaldır (garanti ne?)
+3. Her teklif TEK BİR GÜÇLÜ CÜMLE olsun
+4. Rakamsal ve somut olsun (örn: "30 günde", "%40 artış", "garantili")
+5. Duygusal tetikleyici + somut sonuç + risk eliminasyonu içersin
 
-KRİTİK: Çıktını KESİNLİKLE aşağıdaki JSON formatında ve anahtar kelimeleri (key names) BİREBİR AYNI tutarak ver.
-Anahtar isimleri değiştirme, ekleme yapma, sadece değerleri doldur:
+KRİTİK: Sadece JSON döndür, başka açıklama ekleme. Anahtar isimleri birebir aynı tut:
 
 {
   "mukemmelMusteri": {
-    "profil": "string",
+    "profil": "string - 3-4 cümle, çok spesifik demografik ve psikografik bilgi",
     "icselArzular": [
       { "text": "string", "score": number }
     ],
@@ -224,7 +223,7 @@ Anahtar isimleri değiştirme, ekleme yapma, sadece değerleri doldur:
     ]
   },
   "mecburiMusteri": {
-    "profil": "string",
+    "profil": "string - 3-4 cümle",
     "icselArzular": [
       { "text": "string", "score": number }
     ],
@@ -242,16 +241,14 @@ Anahtar isimleri değiştirme, ekleme yapma, sadece değerleri doldur:
     ]
   },
   "gereksizMusteri": {
-    "profil": "string"
+    "profil": "string - 3-4 cümle, bu müşteriyi nasıl tanırsın ve neden kaçınmalısın"
   },
   "reddedilemezTeklifler": {
-    "mukemmelMusteriTeklif": "string",
-    "mecburiMusteriTeklif": "string",
-    "gereksizMusteriTeklif": "string"
+    "mukemmelMusteriTeklif": "string - tek güçlü cümle, 7-10 skorlu acı noktalarına dayalı, Hormozi formülü uygulanmış",
+    "mecburiMusteriTeklif": "string - tek güçlü cümle, 7-10 skorlu acı noktalarına dayalı, Hormozi formülü uygulanmış",
+    "gereksizMusteriTeklif": "string - tek cümle, bu müşteriyi filtreleyen teklif"
   }
-}
-
-TEKRAR: Yukarıdaki JSON şablonundaki anahtar isimlerini (mukemmelMusteri, icselArzular, dissalArzular, icselEngeller, dissalEngeller, ihtiyaclar, mecburiMusteri, gereksizMusteri, reddedilemezTeklifler, mukemmelMusteriTeklif, mecburiMusteriTeklif, gereksizMusteriTeklif) AYNEN kullan.`;
+}`;
 }
 
 export type { ActionPlanContext, StrategyCardContext, CreativeContext };
