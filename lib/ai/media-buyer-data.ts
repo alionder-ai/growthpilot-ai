@@ -34,8 +34,14 @@ export async function collectCampaignData(
     .eq('campaign_id', campaignId)
     .single();
 
-  if (campaignError || !campaign) {
-    throw new Error(MEDIA_BUYER_ERRORS.CAMPAIGN_NOT_FOUND);
+  if (campaignError) {
+    console.error('[MEDIA BUYER DATA] Campaign query error:', campaignError);
+    throw new Error(`Veritabanı hatası: ${campaignError.message}`);
+  }
+
+  if (!campaign) {
+    console.error('[MEDIA BUYER DATA] Campaign not found in database:', campaignId);
+    throw new Error('Kampanya veritabanında bulunamadı. Lütfen önce Meta Ads senkronizasyonu yapın (Kampanyalar sayfasından "Senkronize Et" butonuna tıklayın).');
   }
 
   // Then, get client separately
