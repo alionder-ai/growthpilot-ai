@@ -104,24 +104,11 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Media buyer API error:', error);
-
-    // Determine appropriate error message and status code
-    if (error instanceof Error) {
-      const errorMessage = error.message;
-      
-      // Check if it's one of our known errors
-      if (Object.values(MEDIA_BUYER_ERRORS).includes(errorMessage as any)) {
-        const statusCode = getStatusCodeForError(errorMessage);
-        return NextResponse.json(
-          { success: false, error: errorMessage },
-          { status: statusCode }
-        );
-      }
-    }
-
-    // Generic error
     return NextResponse.json(
-      { success: false, error: MEDIA_BUYER_ERRORS.UNKNOWN_ERROR },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Bilinmeyen hata'
+      },
       { status: 500 }
     );
   }
