@@ -94,19 +94,9 @@ export class MediaBuyerAnalyzer {
         analyzedAt: new Date().toISOString(),
       };
     } catch (error) {
-      // Handle and translate errors to Turkish
-      if (error instanceof Error) {
-        // If error message is already in Turkish (from our error constants), use it
-        if (Object.values(MEDIA_BUYER_ERRORS).includes(error.message as any)) {
-          throw error;
-        }
-        
-        // Otherwise, provide a generic Turkish error
-        console.error('Media buyer analysis error:', error);
-        throw new Error(MEDIA_BUYER_ERRORS.UNKNOWN_ERROR);
-      }
-      
-      throw new Error(MEDIA_BUYER_ERRORS.UNKNOWN_ERROR);
+      // Re-throw the original error without masking it
+      console.error('[MEDIA BUYER ANALYZER ERROR]:', error);
+      throw error;
     }
   }
 }
