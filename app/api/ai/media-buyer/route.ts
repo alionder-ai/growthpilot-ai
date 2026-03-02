@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { MediaBuyerAnalyzer } from '@/lib/ai/media-buyer-analyzer';
 import { getCachedAnalysis, setCachedAnalysis } from '@/lib/ai/media-buyer-cache';
 import { MEDIA_BUYER_ERRORS } from '@/lib/ai/prompts';
@@ -36,8 +37,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify campaign exists (RLS automatically filters by user)
-    const { data: campaign, error: campaignError } = await supabase
+    // Use service role client to bypass RLS for debugging
+    const serviceClient = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Verify campaign exists
+    const { data: campaign, error: campaignError } = await serviceClient
       .from('campaigns')
       .select('campaign_id, client_id')
       .eq('campaign_id', campaignId)
@@ -45,12 +52,24 @@ export async function POST(request: NextRequest) {
 
     if (campaignError || !campaign) {
       return NextResponse.json(
-        { success: false, error: MEDIA_BUYER_ERRORS.CAMPAIGN_NOT_FOUND },
+        { success: false, error: 'Kampanya bulunamadı', details: campaignError?.message },
         { status: 404 }
       );
     }
 
-    // Skip manual ownership check - RLS handles this
+    // Manual ownership check
+    const { data: clientData } = await serviceClient
+      .from('clients')
+      .select('user_id')
+      .eq('client_id', campaign.client_id)
+      .single();
+
+    if (!clientData || clientData.user_id !== user.id) {
+      return NextResponse.json(
+        { success: false, error: 'Bu kampanyaya erişim yetkiniz yok' },
+        { status: 403 }
+      );
+    }
 
     // Check cache first
     const cachedResult = getCachedAnalysis(campaignId);
