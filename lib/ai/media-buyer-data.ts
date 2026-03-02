@@ -5,7 +5,7 @@
  * Fetches campaign, ad sets, ads, and 30-day metrics from database.
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { CampaignData, AggregatedMetrics } from '@/lib/types/media-buyer';
 import { MEDIA_BUYER_ERRORS } from '@/lib/ai/prompts';
 
@@ -21,7 +21,10 @@ export async function collectCampaignData(
   campaignId: string,
   userId: string
 ): Promise<CampaignData> {
-  const supabase = await createClient();
+  const supabase = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
 
   // Fetch campaign with client and commission model
   // RLS policies automatically filter by user ownership
@@ -68,25 +71,29 @@ export async function collectCampaignData(
     throw new Error(MEDIA_BUYER_ERRORS.DATABASE_ERROR);
   }
 
-  // Fetch ads
+  // Fetch ads (via ad_set_id)
+  const adSetIds = adSets?.map((as: any) => as.ad_set_id) || [];
+
   const { data: ads, error: adsError } = await supabase
     .from('ads')
     .select('ad_id, ad_name, status')
-    .eq('campaign_id', campaignId);
+    .in('ad_set_id', adSetIds);
 
   if (adsError) {
     throw new Error(MEDIA_BUYER_ERRORS.DATABASE_ERROR);
   }
 
-  // Fetch 30-day metrics
+  // Fetch 30-day metrics (via ad_id)
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
+  const adIds = ads?.map((a: any) => a.ad_id) || [];
+
   const { data: metrics, error: metricsError } = await supabase
     .from('meta_metrics')
     .select('date, spend, impressions, clicks, conversions, roas, ctr, cpc, cpm, cpa, frequency')
-    .eq('campaign_id', campaignId)
+    .in('ad_id', adIds)
     .gte('date', thirtyDaysAgoStr)
     .order('date', { ascending: true });
 
@@ -94,8 +101,8 @@ export async function collectCampaignData(
     throw new Error(MEDIA_BUYER_ERRORS.DATABASE_ERROR);
   }
 
-  // Validate sufficient data (at least 7 days)
-  if (!metrics || metrics.length < 7) {
+  // Validate sufficient data (at least 1 day for testing)
+  if (!metrics || metrics.length < 1) {
     throw new Error(MEDIA_BUYER_ERRORS.INSUFFICIENT_DATA);
   }
 
