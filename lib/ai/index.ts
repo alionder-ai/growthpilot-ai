@@ -12,7 +12,7 @@ export const TOKEN_LIMITS = {
   ACTION_PLAN: 500,
   STRATEGY_CARD: 300,
   CREATIVE_CONTENT: 1000,
-  TARGET_AUDIENCE: 2000,
+  TARGET_AUDIENCE: 4000,
 } as const;
 
 let groqClient: Groq | null = null;
