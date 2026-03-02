@@ -7,7 +7,6 @@
  */
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { CampaignSelector } from '@/components/ai/CampaignSelector';
 import { AnalysisResults } from '@/components/ai/AnalysisResults';
@@ -36,34 +35,25 @@ export default function MediaBuyerPage() {
   const fetchCampaigns = async () => {
     try {
       setLoadingCampaigns(true);
-      const supabase = createClient();
+      
+      const response = await fetch('/api/campaigns?limit=100');
+      const result = await response.json();
 
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select(`
-          campaign_id,
-          campaign_name,
-          status,
-          client:clients!inner(user_id)
-        `)
-        .eq('status', 'ACTIVE')
-        .order('campaign_name');
+      if (!response.ok) {
+        throw new Error(result.error || 'Kampanyalar yüklenemedi');
+      }
 
-      if (error) throw error;
+      // Filter only active campaigns and map to simple format
+      const activeCampaigns = result.campaigns
+        ?.filter((c: any) => c.status === 'ACTIVE')
+        .map((c: any) => ({
+          campaign_id: c.campaign_id,
+          campaign_name: c.campaign_name || c.name,
+          status: c.status,
+          budget: c.budget,
+        })) || [];
 
-      // Filter campaigns for current user (RLS should handle this, but double-check)
-      const { data: { user } } = await supabase.auth.getUser();
-      const userCampaigns = data?.filter((c: any) => {
-        const client = Array.isArray(c.client) ? c.client[0] : c.client;
-        return client.user_id === user?.id;
-      }) || [];
-
-      setCampaigns(userCampaigns.map((c: any) => ({
-        campaign_id: c.campaign_id,
-        campaign_name: c.campaign_name,
-        status: c.status,
-        budget: c.budget,
-      })));
+      setCampaigns(activeCampaigns);
     } catch (err) {
       console.error('Error fetching campaigns:', err);
       setError('Kampanyalar yüklenirken bir hata oluştu');
