@@ -41,7 +41,7 @@ export async function collectCampaignData(
   // Get client separately (no join)
   const { data: clientData, error: clientError } = await supabase
     .from('clients')
-    .select('client_id, client_name, industry, user_id')
+    .select('client_id, name, industry, user_id')
     .eq('client_id', campaign.client_id)
     .single();
 
@@ -55,11 +55,17 @@ export async function collectCampaignData(
   }
 
   // Get commission model separately
-  const { data: commissionModel } = await supabase
+  const { data: commissionModelData } = await supabase
     .from('commission_models')
-    .select('model_type, rate, target_roas')
+    .select('commission_percentage, calculation_basis')
     .eq('client_id', campaign.client_id)
     .single();
+
+  const commissionModel = {
+    model_type: 'percentage',
+    rate: commissionModelData?.commission_percentage ? commissionModelData.commission_percentage / 100 : 0.15,
+    target_roas: 2.0
+  };
 
   // Fetch ad sets
   const { data: adSets, error: adSetsError } = await supabase
@@ -137,7 +143,7 @@ export async function collectCampaignData(
     })),
     client: {
       client_id: clientData.client_id,
-      client_name: clientData.client_name,
+      client_name: clientData.name,
       industry: clientData.industry || 'Genel',
     },
     commissionModel: {
