@@ -8,6 +8,7 @@ export {
   buildActionPlanPrompt,
   buildStrategyCardPrompt,
   buildCreativePrompt,
+  buildTargetAudiencePrompt,
   buildLeadQualityContext,
   type ActionPlanContext,
   type ActionPlanResponse,
