@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getGeminiClient, TOKEN_LIMITS } from '@/lib/gemini/client';
+import { generateAI, TOKEN_LIMITS } from '@/lib/ai';
 import { buildActionPlanPrompt } from '@/lib/gemini/prompts';
 
 export const dynamic = 'force-dynamic';
@@ -205,12 +205,12 @@ export async function POST(request: NextRequest) {
     };
 
     // Generate action plan using Gemini API
-    const geminiClient = getGeminiClient();
     const prompt = buildActionPlanPrompt(promptContext);
 
     let actionPlan: ActionPlanItem[];
     try {
-      actionPlan = await geminiClient.generateJSON<ActionPlanItem[]>(
+      actionPlan = await generateAI<ActionPlanItem[]>(
+        'action_plan',
         prompt,
         TOKEN_LIMITS.ACTION_PLAN
       );
@@ -260,7 +260,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      recommendation_id: recommendation.recommendation_id,
+      recommendation_id: recommendation.id,
       action_plan: actionPlan,
     });
   } catch (error) {
