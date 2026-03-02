@@ -13,6 +13,13 @@ import { MEDIA_BUYER_ERRORS } from '@/lib/ai/prompts';
 
 export async function POST(request: NextRequest) {
   try {
+    // DEBUG: Test if request reaches this route
+    return NextResponse.json({
+      success: false,
+      error: 'TEST - kod çalışıyor',
+      body: await request.json()
+    }, { status: 400 });
+
     // Get authenticated user
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
