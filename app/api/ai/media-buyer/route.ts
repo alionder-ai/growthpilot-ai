@@ -36,39 +36,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify campaign ownership (RLS will also enforce this, but explicit check for better error message)
+    // Verify campaign exists
     const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
-      .select('campaign_id, client:clients!inner(user_id)')
+      .select('campaign_id, client_id')
       .eq('campaign_id', campaignId)
       .single();
 
-    if (campaignError) {
-      console.error('Campaign query error:', campaignError);
+    if (campaignError || !campaign) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Kampanya sorgu hatası',
-          details: campaignError.message,
-          code: campaignError.code,
-          campaignId
-        },
+        { success: false, error: 'Kampanya bulunamadı', details: campaignError?.message, campaignId },
         { status: 404 }
       );
     }
 
-    if (!campaign) {
-      return NextResponse.json(
-        { success: false, error: MEDIA_BUYER_ERRORS.CAMPAIGN_NOT_FOUND },
-        { status: 404 }
-      );
-    }
+    // Ownership check via client
+    const { data: clientData } = await supabase
+      .from('clients')
+      .select('user_id')
+      .eq('client_id', campaign.client_id)
+      .single();
 
-    // Check ownership
-    const client = Array.isArray(campaign.client) ? campaign.client[0] : campaign.client;
-    if (client.user_id !== user.id) {
+    if (!clientData || clientData.user_id !== user.id) {
       return NextResponse.json(
-        { success: false, error: MEDIA_BUYER_ERRORS.UNAUTHORIZED },
+        { success: false, error: 'Bu kampanyaya erişim yetkiniz yok' },
         { status: 403 }
       );
     }
