@@ -36,6 +36,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Debug: list all campaigns for this user
+    const { data: allCampaigns } = await supabase
+      .from('campaigns')
+      .select('campaign_id, client_id')
+      .limit(5);
+
+    console.log('All campaigns:', JSON.stringify(allCampaigns));
+    console.log('Looking for campaignId:', campaignId);
+
     // Verify campaign exists
     const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
