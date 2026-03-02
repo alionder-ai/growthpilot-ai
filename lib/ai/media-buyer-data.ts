@@ -26,15 +26,6 @@ export async function collectCampaignData(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // DEBUG
-  const { data: testCampaign, error: testError } = await supabase
-    .from('campaigns')
-    .select('campaign_id')
-    .eq('campaign_id', campaignId)
-    .single();
-
-  throw new Error(`DEBUG: campaign=${JSON.stringify(testCampaign)}, error=${JSON.stringify(testError)}, campaignId=${campaignId}`);
-
   // Fetch campaign with client and commission model
   // First, get campaign
   const { data: campaign, error: campaignError } = await supabase
