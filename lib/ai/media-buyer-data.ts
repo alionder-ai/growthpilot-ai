@@ -27,27 +27,10 @@ export async function collectCampaignData(
   );
 
   // Fetch campaign with client and commission model
-  // RLS policies automatically filter by user ownership
+  // First, get campaign
   const { data: campaign, error: campaignError } = await supabase
     .from('campaigns')
-    .select(`
-      campaign_id,
-      campaign_name,
-      status,
-      meta_campaign_id,
-      client_id,
-      clients!inner (
-        client_id,
-        client_name,
-        industry,
-        user_id,
-        commission_models (
-          model_type,
-          rate,
-          target_roas
-        )
-      )
-    `)
+    .select('campaign_id, campaign_name, status, meta_campaign_id, client_id')
     .eq('campaign_id', campaignId)
     .single();
 
@@ -55,11 +38,28 @@ export async function collectCampaignData(
     throw new Error(MEDIA_BUYER_ERRORS.CAMPAIGN_NOT_FOUND);
   }
 
-  // Verify ownership (RLS should handle this, but double-check)
-  const client = Array.isArray(campaign.clients) ? campaign.clients[0] : campaign.clients;
-  if (client.user_id !== userId) {
+  // Then, get client separately
+  const { data: clientData, error: clientError } = await supabase
+    .from('clients')
+    .select('client_id, client_name, industry, user_id')
+    .eq('client_id', campaign.client_id)
+    .single();
+
+  if (clientError || !clientData) {
     throw new Error(MEDIA_BUYER_ERRORS.CAMPAIGN_NOT_FOUND);
   }
+
+  // Verify ownership
+  if (clientData.user_id !== userId) {
+    throw new Error(MEDIA_BUYER_ERRORS.CAMPAIGN_NOT_FOUND);
+  }
+
+  // Get commission model separately
+  const { data: commissionModel } = await supabase
+    .from('commission_models')
+    .select('model_type, rate, target_roas')
+    .eq('client_id', campaign.client_id)
+    .single();
 
   // Fetch ad sets
   const { data: adSets, error: adSetsError } = await supabase
@@ -107,10 +107,6 @@ export async function collectCampaignData(
   }
 
   // Extract commission model
-  const commissionModel = Array.isArray(client.commission_models) 
-    ? client.commission_models[0] 
-    : client.commission_models;
-
   if (!commissionModel) {
     throw new Error('Komisyon modeli bulunamadı');
   }
@@ -138,9 +134,9 @@ export async function collectCampaignData(
       frequency: m.frequency || 0,
     })),
     client: {
-      client_id: client.client_id,
-      client_name: client.client_name,
-      industry: client.industry || 'Genel',
+      client_id: clientData.client_id,
+      client_name: clientData.client_name,
+      industry: clientData.industry || 'Genel',
     },
     commissionModel: {
       model_type: commissionModel.model_type,
