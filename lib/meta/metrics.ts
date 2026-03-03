@@ -14,6 +14,12 @@ export interface ParsedMetrics {
   add_to_cart: number;
   purchases: number;
   revenue: number;
+  conversations: number;
+  link_clicks: number;
+  post_engagement: number;
+  leads: number;
+  video_views: number;
+  reach: number | null;
 }
 
 /**
@@ -24,11 +30,17 @@ export function parseMetrics(insights: AdInsights): ParsedMetrics {
   const impressions = parseInt(insights.impressions) || 0;
   const clicks = parseInt(insights.clicks) || 0;
   const frequency = insights.frequency ? parseFloat(insights.frequency) : null;
+  const reach = insights.reach ? parseInt(insights.reach) : null;
 
   // Parse actions array
   let conversions = 0;
   let add_to_cart = 0;
   let purchases = 0;
+  let conversations = 0;
+  let link_clicks = 0;
+  let post_engagement = 0;
+  let leads = 0;
+  let video_views = 0;
 
   if (insights.actions) {
     for (const action of insights.actions) {
@@ -41,6 +53,23 @@ export function parseMetrics(insights: AdInsights): ParsedMetrics {
         case 'add_to_cart':
         case 'omni_add_to_cart':
           add_to_cart += parseInt(action.value) || 0;
+          break;
+        case 'onsite_conversion.messaging_conversation_started_7d':
+        case 'onsite_conversion.total_messaging_connection':
+          conversations += parseInt(action.value) || 0;
+          break;
+        case 'link_click':
+          link_clicks += parseInt(action.value) || 0;
+          break;
+        case 'post_engagement':
+          post_engagement += parseInt(action.value) || 0;
+          break;
+        case 'lead':
+        case 'offsite_conversion.fb_pixel_lead':
+          leads += parseInt(action.value) || 0;
+          break;
+        case 'video_view':
+          video_views += parseInt(action.value) || 0;
           break;
       }
     }
@@ -80,6 +109,12 @@ export function parseMetrics(insights: AdInsights): ParsedMetrics {
     add_to_cart,
     purchases,
     revenue,
+    conversations,
+    link_clicks,
+    post_engagement,
+    leads,
+    video_views,
+    reach,
   };
 }
 
@@ -109,6 +144,12 @@ export async function storeMetrics(
       frequency: metrics.frequency,
       add_to_cart: metrics.add_to_cart,
       purchases: metrics.purchases,
+      conversations: metrics.conversations,
+      link_clicks: metrics.link_clicks,
+      post_engagement: metrics.post_engagement,
+      leads: metrics.leads,
+      video_views: metrics.video_views,
+      reach: metrics.reach,
       created_at: new Date().toISOString(),
     }, {
       onConflict: 'ad_id,date',
@@ -146,6 +187,12 @@ export async function batchStoreMetrics(
     frequency: metrics.frequency,
     add_to_cart: metrics.add_to_cart,
     purchases: metrics.purchases,
+    conversations: metrics.conversations,
+    link_clicks: metrics.link_clicks,
+    post_engagement: metrics.post_engagement,
+    leads: metrics.leads,
+    video_views: metrics.video_views,
+    reach: metrics.reach,
     created_at: new Date().toISOString(),
   }));
 

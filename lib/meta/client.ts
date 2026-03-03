@@ -246,10 +246,32 @@ export class MetaAPIClient {
     dateRange: DateRange
   ): Promise<AdInsights | null> {
     try {
+      const fields = [
+        'ad_id',
+        'date_start',
+        'date_stop',
+        'spend',
+        'impressions',
+        'clicks',
+        'actions',
+        'action_values',
+        'frequency',
+        'cpm',
+        'cpc',
+        'ctr',
+        'cpp',
+        'reach',
+        'video_play_actions',
+        'video_p25_watched_actions',
+        'video_p50_watched_actions',
+        'video_p75_watched_actions',
+        'video_p95_watched_actions',
+      ].join(',');
+
       const insights = await this.makeRequest<AdInsights[]>(
         `/${adId}/insights`,
         {
-          fields: 'ad_id,date_start,date_stop,spend,impressions,clicks,actions,action_values,frequency',
+          fields,
           time_range: JSON.stringify({
             since: dateRange.since,
             until: dateRange.until,
