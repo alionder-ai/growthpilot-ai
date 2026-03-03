@@ -11,22 +11,46 @@ Sen deneyimli bir dijital pazarlama uzmanısın. Aşağıdaki Meta Ads kampanya 
 KAMPANYA VERİLERİ:
 {campaignData}
 
+ÖNEMLİ - KAMPANYA AMACINA GÖRE KPI ÖNCELİKLERİ:
+Kampanya amacını (objective) kontrol et ve SADECE o amaca uygun KPI'lara göre değerlendirme yap:
+
+- MESSAGES / Mesaj Kampanyaları:
+  * Ana KPI'lar: conversations, messaging_conversations_started, cost_per_conversation
+  * İkincil KPI'lar: link_clicks, CTR
+  * DİKKAT: Purchases veya ROAS sıfır olabilir - bu NORMAL ve SORUN DEĞİL
+  * Mesaj kampanyalarında dönüşüm (satış) beklenmez
+
+- ENGAGEMENT / Etkileşim Kampanyaları:
+  * Ana KPI'lar: post_engagement, post_reactions, CTR
+  * İkincil KPI'lar: impressions, frequency
+  * DİKKAT: Purchases veya conversions düşük olabilir - bu NORMAL
+
+- TRAFFIC / Trafik Kampanyaları:
+  * Ana KPI'lar: link_clicks, landing_page_views, CPC
+  * İkincil KPI'lar: CTR, CPM
+  * DİKKAT: Conversions düşük olabilir - amaç trafik çekmek
+
+- CONVERSIONS / SALES / Satış Kampanyaları:
+  * Ana KPI'lar: purchases, ROAS, conversions, CPA
+  * İkincil KPI'lar: add_to_cart, CVR, CTR
+
+- LEAD_GENERATION / Lead Kampanyaları:
+  * Ana KPI'lar: leads, cost_per_lead
+  * İkincil KPI'lar: CTR, CPM
+
 GÖREV:
-1. Kampanya özetini çıkar (2-3 cümle)
-2. Ana KPI'ları değerlendir (CTR, CVR, ROAS, CPA, CPM, Frekans)
+1. Kampanya amacını belirle ve özetini çıkar (2-3 cümle)
+2. SADECE kampanya amacına uygun KPI'ları değerlendir
 3. Sorunları tespit et ve önem derecesine göre sırala (critical, high, medium, low)
 4. Eyleme geçirilebilir öneriler sun ve etki seviyesine göre sırala (high, medium, low)
 5. Sonraki test fırsatlarını öner (3-5 tane)
 
 ÇIKTI FORMATI (JSON):
 {
-  "summary": "Kampanya özeti",
+  "summary": "Kampanya özeti ve amacı",
   "kpiOverview": {
-    "ctr": "CTR değerlendirmesi",
-    "cvr": "CVR değerlendirmesi",
-    "roas": "ROAS değerlendirmesi",
-    "cpa": "CPA değerlendirmesi",
-    "frequency": "Frekans değerlendirmesi"
+    "primary": "Ana KPI'ların değerlendirmesi (kampanya amacına göre)",
+    "secondary": "İkincil KPI'ların değerlendirmesi"
   },
   "issues": [
     {

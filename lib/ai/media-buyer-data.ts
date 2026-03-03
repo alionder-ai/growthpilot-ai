@@ -100,7 +100,7 @@ export async function collectCampaignData(
 
   const { data: metrics, error: metricsError } = await supabase
     .from('meta_metrics')
-    .select('date, spend, impressions, clicks, conversions, roas, ctr, cpc, cpm, cpa, frequency')
+    .select('date, spend, impressions, clicks, conversions, roas, ctr, cpc, cpm, cpa, frequency, purchases, conversations, messaging_conversations_started, link_clicks, landing_page_views, post_engagement, post_reactions, leads, cost_per_lead, cost_per_conversation, objective')
     .in('ad_id', adIds)
     .gte('date', thirtyDaysAgoStr)
     .order('date', { ascending: true });
