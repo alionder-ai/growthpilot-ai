@@ -45,20 +45,7 @@ function isFresh(entry: CacheEntry): boolean {
  * @returns Cached analysis or null if not found/expired
  */
 export function getCachedAnalysis(campaignId: string): MediaBuyerAnalysis | null {
-  const key = getCacheKey(campaignId);
-  const entry = cache.get(key);
-
-  if (!entry) {
-    return null;
-  }
-
-  if (!isFresh(entry)) {
-    // Remove expired entry
-    cache.delete(key);
-    return null;
-  }
-
-  return entry.data;
+  return null; // Cache disabled for debugging
 }
 
 /**
