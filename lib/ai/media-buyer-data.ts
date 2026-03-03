@@ -59,7 +59,9 @@ export async function collectCampaignData(
   }
 
   // Log detected objective for debugging
-  console.log('[MEDIA BUYER] Detected objective:', detectedObjective, 'for campaign:', campaign.campaign_name);
+  console.log('[MEDIA BUYER DATA] Campaign:', campaign.campaign_name);
+  console.log('[MEDIA BUYER DATA] Raw objective from DB:', rawObjective);
+  console.log('[MEDIA BUYER DATA] Detected objective:', detectedObjective);
 
   // Get client separately (no join)
   const { data: clientData, error: clientError } = await supabase

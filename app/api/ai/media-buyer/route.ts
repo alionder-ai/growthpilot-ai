@@ -100,6 +100,7 @@ export async function POST(request: NextRequest) {
       success: true,
       data: analysis,
       cached: false,
+      debug_objective: analysis.campaignName, // Include for debugging
     });
 
   } catch (error) {

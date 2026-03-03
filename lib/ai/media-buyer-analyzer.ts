@@ -55,6 +55,11 @@ export class MediaBuyerAnalyzer {
         campaignData.campaign.objective
       );
 
+      // DEBUG: Log objective before decision
+      console.log('[ANALYZER] Campaign objective:', campaignData.campaign.objective);
+      console.log('[ANALYZER] Campaign name:', campaignData.campaign.campaign_name);
+      console.log('[ANALYZER] Performance score:', performanceScore);
+
       // Step 4: Determine Scale/Hold/Kill decision (with objective)
       const decision = this.decisionEngine.determine(
         performanceScore,
