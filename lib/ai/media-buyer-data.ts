@@ -38,6 +38,26 @@ export async function collectCampaignData(
     throw new Error(`CAMPAIGN_DEBUG: id=${campaignId}, error=${campaignError?.message}, code=${campaignError?.code}`);
   }
 
+  // Detect objective - first from column, then infer from campaign name
+  const rawObjective = campaign.objective || '';
+  let detectedObjective = rawObjective;
+
+  if (!detectedObjective) {
+    const name = campaign.campaign_name.toUpperCase();
+    if (name.includes('ETKİLEŞİM') || name.includes('ENGAGEMENT')) {
+      detectedObjective = 'ENGAGEMENT';
+    } else if (name.includes('MESAJ') || name.includes('MESSAGE')) {
+      detectedObjective = 'MESSAGES';
+    } else if (name.includes('TRAFİK') || name.includes('TRAFFIC')) {
+      detectedObjective = 'TRAFFIC';
+    } else if (name.includes('LEAD')) {
+      detectedObjective = 'LEAD_GENERATION';
+    } else if (name.includes('SATIŞ') || name.includes('SALES') || name.includes('DÖNÜŞÜM') || name.includes('CONVERSION')) {
+      detectedObjective = 'CONVERSIONS';
+    }
+    // If still empty, leave it empty (will default to CONVERSIONS in calculator)
+  }
+
   // Get client separately (no join)
   const { data: clientData, error: clientError } = await supabase
     .from('clients')
@@ -125,7 +145,7 @@ export async function collectCampaignData(
       campaign_name: campaign.campaign_name,
       status: campaign.status,
       meta_campaign_id: campaign.meta_campaign_id,
-      objective: campaign.objective,
+      objective: detectedObjective,
     },
     adSets: adSets || [],
     ads: ads || [],
