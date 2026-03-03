@@ -41,6 +41,28 @@ KAMPANYA AMACINA GÖRE ANALİZ KURALLARI:
   * Ana KPI'lar: leads, cost_per_lead, CTR
   * Benchmark: CPL <₺30, CTR >%1
 
+CPM DEĞERLENDİRME (sektöre göre):
+- E-ticaret/Ürün satışı: ₺30 altı mükemmel, ₺30-60 iyi, ₺60-100 orta, ₺100+ yüksek
+- Hizmet/Danışmanlık: ₺50 altı mükemmel, ₺50-100 iyi, ₺100-150 orta, ₺150+ yüksek
+- Gayrimenkul/Araba: ₺80 altı mükemmel, ₺80-150 iyi, ₺150-250 orta, ₺250+ yüksek
+- Restoran/Yerel işletme: ₺20 altı mükemmel, ₺20-50 iyi, ₺50-80 orta, ₺80+ yüksek
+- Eğitim/Kurs: ₺40 altı mükemmel, ₺40-80 iyi, ₺80-130 orta, ₺130+ yüksek
+- Sektör bilinmiyorsa: Türkiye Meta ortalaması ₺50-80 referans al
+
+CPA DEĞERLENDİRME (sektöre göre):
+- E-ticaret/Ürün satışı: ₺50 altı mükemmel, ₺50-150 iyi, ₺150-300 orta, ₺300+ yüksek
+- Hizmet/Danışmanlık: ₺200 altı mükemmel, ₺200-500 iyi, ₺500-1000 orta, ₺1000+ yüksek
+- Gayrimenkul/Araba: ₺500 altı mükemmel, ₺500-2000 iyi, ₺2000-5000 orta, ₺5000+ yüksek
+- Restoran/Yerel işletme: ₺20 altı mükemmel, ₺20-50 iyi, ₺50-100 orta, ₺100+ yüksek
+- Eğitim/Kurs: ₺100 altı mükemmel, ₺100-300 iyi, ₺300-600 orta, ₺600+ yüksek
+- Sektör bilinmiyorsa: Harcama/Dönüşüm oranına ve ROAS'a göre değerlendir
+
+CPC DEĞERLENDİRME (sektöre göre):
+- E-ticaret: ₺5 altı mükemmel, ₺5-15 iyi, ₺15-30 orta, ₺30+ yüksek
+- Hizmet/Danışmanlık: ₺10 altı mükemmel, ₺10-30 iyi, ₺30-60 orta, ₺60+ yüksek
+- Gayrimenkul: ₺20 altı mükemmel, ₺20-60 iyi, ₺60-120 orta, ₺120+ yüksek
+- Sektör bilinmiyorsa: Türkiye Meta ortalaması ₺8-15 referans al
+
 ZORUNLU ÇIKTI FORMATI (JSON):
 {
   "summary": "2-3 cümle, spesifik metrik değerleri içeren özet. Örn: 'CTR %1.11 ile hedefin üzerinde, ancak frekans 4.8'e ulaşmış ve kitle yorgunluğu başlamış'",
