@@ -11,6 +11,7 @@ import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { MediaBuyerAnalyzer } from '@/lib/ai/media-buyer-analyzer';
 import { getCachedAnalysis, setCachedAnalysis } from '@/lib/ai/media-buyer-cache';
 import { MEDIA_BUYER_ERRORS } from '@/lib/ai/prompts';
+import { collectCampaignData } from '@/lib/ai/media-buyer-data';
 
 export async function POST(request: NextRequest) {
   console.log('[ROUTE] POST /api/ai/media-buyer called');
@@ -89,21 +90,16 @@ export async function POST(request: NextRequest) {
     // Cache miss - perform analysis
     console.log(`Cache miss for campaign ${campaignId}, performing analysis`);
     
-    const analyzer = new MediaBuyerAnalyzer();
-    const analysis = await analyzer.analyzeCampaign(campaignId, user.id);
-
-    // Store in cache
-    setCachedAnalysis(campaignId, analysis);
-
-    // Log analysis request for audit
-    await logAnalysisRequest(supabase, user.id, campaignId, 'success');
-
+    // DEBUG: Collect campaign data first to inspect objective
+    const testData = await collectCampaignData(campaignId, user.id);
+    
     return NextResponse.json({
-      success: true,
-      data: analysis,
-      cached: false,
-      debug_objective: analysis.campaignName, // Include for debugging
-    });
+      success: false,
+      debug: {
+        objective: testData.campaign.objective,
+        campaignName: testData.campaign.campaign_name,
+      }
+    }, { status: 400 });
 
   } catch (error) {
     console.error('[AI MEDIA BUYER FATAL ERROR]:', error);
