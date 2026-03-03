@@ -30,7 +30,7 @@ export async function collectCampaignData(
   // Get campaign (campaign_name is correct per schema)
   const { data: campaign, error: campaignError } = await supabase
     .from('campaigns')
-    .select('campaign_id, campaign_name, status, meta_campaign_id, client_id')
+    .select('campaign_id, campaign_name, status, meta_campaign_id, client_id, objective')
     .eq('campaign_id', campaignId)
     .single();
 
@@ -125,6 +125,7 @@ export async function collectCampaignData(
       campaign_name: campaign.campaign_name,
       status: campaign.status,
       meta_campaign_id: campaign.meta_campaign_id,
+      objective: campaign.objective,
     },
     adSets: adSets || [],
     ads: ads || [],

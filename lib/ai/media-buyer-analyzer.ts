@@ -49,14 +49,18 @@ export class MediaBuyerAnalyzer {
       // Step 2: Aggregate metrics
       const metrics = aggregateMetrics(campaignData.metrics);
 
-      // Step 3: Calculate performance score
-      const performanceScore = this.scoreCalculator.calculate(metrics);
+      // Step 3: Calculate performance score (with objective)
+      const performanceScore = this.scoreCalculator.calculate(
+        metrics,
+        campaignData.campaign.objective
+      );
 
-      // Step 4: Determine Scale/Hold/Kill decision
+      // Step 4: Determine Scale/Hold/Kill decision (with objective)
       const decision = this.decisionEngine.determine(
         performanceScore,
         metrics,
-        campaignData.commissionModel.target_roas || 2.0
+        campaignData.commissionModel.target_roas || 2.0,
+        campaignData.campaign.objective
       );
 
       // Step 5: Generate AI analysis (parallel with other operations)

@@ -69,6 +69,7 @@ export interface CampaignData {
     campaign_name: string;
     status: string;
     meta_campaign_id: string;
+    objective?: string;
   };
   adSets: Array<{
     ad_set_id: string;
@@ -111,12 +112,17 @@ export interface AggregatedMetrics {
   totalImpressions: number;
   totalClicks: number;
   totalConversions: number;
+  totalConversations?: number;
+  totalLeads?: number;
   avgCTR: number;
   avgCVR: number;
   avgROAS: number;
   avgCPA: number;
   avgCPM: number;
+  avgCPC?: number;
   avgFrequency: number;
+  avgCostPerLead?: number;
+  avgCostPerConversation?: number;
   dateRange: {
     start: string;
     end: string;
