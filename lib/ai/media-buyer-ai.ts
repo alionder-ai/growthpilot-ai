@@ -35,6 +35,7 @@ export async function generateAIAnalysis(
   // Prepare campaign data summary for prompt
   const campaignSummary = {
     kampanya_adi: campaignData.campaign.campaign_name,
+    kampanya_amaci: campaignData.campaign.objective || 'BILINMIYOR',
     musteri: campaignData.client.client_name,
     sektor: campaignData.client.industry,
     tarih_araligi: `${metrics.dateRange.start} - ${metrics.dateRange.end}`,
@@ -49,9 +50,18 @@ export async function generateAIAnalysis(
       ortalama_cpa: `₺${metrics.avgCPA.toFixed(2)}`,
       ortalama_cpm: `₺${metrics.avgCPM.toFixed(2)}`,
       ortalama_frekans: metrics.avgFrequency.toFixed(2),
+      toplam_mesajlasma: metrics.totalConversations || 0,
+      toplam_link_tiklama: metrics.totalLinkClicks || 0,
+      toplam_etkilesim: metrics.totalPostEngagement || 0,
+      toplam_lead: metrics.totalLeads || 0,
     },
     reklam_setleri: campaignData.adSets.length,
     reklamlar: campaignData.ads.length,
+    onemli_not: campaignData.campaign.objective?.includes('ENGAGEMENT') || campaignData.campaign.objective?.includes('ETKILESIM')
+      ? 'BU ETKİLEŞİM KAMPANYASIDIR. ROAS ve dönüşüm 0 olması tamamen normaldir, sorun olarak GÖSTERME.'
+      : campaignData.campaign.objective?.includes('MESSAGE') || campaignData.campaign.objective?.includes('MESAJ')
+      ? 'BU MESAJ KAMPANYASIDIR. ROAS ve dönüşüm 0 olması tamamen normaldir. Mesajlaşma sayısına ve maliyetine odaklan.'
+      : ''
   };
 
   // Build prompt with campaign data
