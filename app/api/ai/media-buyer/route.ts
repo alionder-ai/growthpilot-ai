@@ -13,6 +13,8 @@ import { getCachedAnalysis, setCachedAnalysis } from '@/lib/ai/media-buyer-cache
 import { MEDIA_BUYER_ERRORS } from '@/lib/ai/prompts';
 
 export async function POST(request: NextRequest) {
+  console.log('[ROUTE] POST /api/ai/media-buyer called');
+  
   try {
     // Get authenticated user
     const supabase = await createClient();

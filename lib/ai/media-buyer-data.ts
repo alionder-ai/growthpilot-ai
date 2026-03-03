@@ -21,6 +21,8 @@ export async function collectCampaignData(
   campaignId: string,
   userId: string
 ): Promise<CampaignData> {
+  console.log('[DATA] collectCampaignData called with campaignId:', campaignId);
+  
   const supabase = await createClient();
 
   // DEBUG - environment variables kontrol
