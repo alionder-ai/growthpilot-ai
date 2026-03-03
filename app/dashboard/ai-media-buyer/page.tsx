@@ -318,8 +318,10 @@ export default function MediaBuyerPage() {
                           </div>
                         )}
 
-                        {/* Kar Simülasyonu */}
-                        {analysis.profitSimulation && (
+                        {/* Kar Simülasyonu - Sadece CONVERSIONS ve SALES için */}
+                        {analysis.profitSimulation && 
+                          campaign.objective && 
+                          !['ENGAGEMENT', 'MESSAGES', 'TRAFFIC', 'LEAD_GENERATION'].includes(campaign.objective) && (
                           <div className="bg-green-50 rounded-lg border border-green-200 p-4">
                             <h4 className="font-medium text-green-900 mb-3 flex items-center gap-2">
                               <DollarSign className="w-4 h-4 text-green-600" />

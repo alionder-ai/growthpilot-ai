@@ -18,10 +18,11 @@ import { BenchmarkComparison } from './BenchmarkComparison';
 
 interface AnalysisResultsProps {
   analysis: MediaBuyerAnalysis;
+  campaignObjective: string;
   onCopyJustification?: () => void;
 }
 
-export function AnalysisResults({ analysis, onCopyJustification }: AnalysisResultsProps) {
+export function AnalysisResults({ analysis, campaignObjective, onCopyJustification }: AnalysisResultsProps) {
   const [copiedJustification, setCopiedJustification] = useState(false);
 
   const handleCopyJustification = () => {
@@ -133,8 +134,11 @@ export function AnalysisResults({ analysis, onCopyJustification }: AnalysisResul
         </Card>
       )}
 
-      {/* Profit Simulation */}
-      <ProfitSimulationCard simulation={analysis.profitSimulation} />
+      {/* Profit Simulation - Only for CONVERSIONS and SALES objectives */}
+      {analysis.profitSimulation &&
+        !['ENGAGEMENT', 'MESSAGES', 'TRAFFIC', 'LEAD_GENERATION'].includes(campaignObjective) && (
+          <ProfitSimulationCard simulation={analysis.profitSimulation} />
+        )}
 
       {/* Benchmark Comparison */}
       {analysis.industryBenchmark && (
