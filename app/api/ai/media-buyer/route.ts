@@ -90,16 +90,20 @@ export async function POST(request: NextRequest) {
     // Cache miss - perform analysis
     console.log(`Cache miss for campaign ${campaignId}, performing analysis`);
     
-    // DEBUG: Collect campaign data first to inspect objective
-    const testData = await collectCampaignData(campaignId, user.id);
-    
+    const analyzer = new MediaBuyerAnalyzer();
+    const analysis = await analyzer.analyzeCampaign(campaignId, user.id);
+
+    // Store in cache
+    setCachedAnalysis(campaignId, analysis);
+
+    // Log request
+    await logAnalysisRequest(supabase, user.id, campaignId, 'success');
+
     return NextResponse.json({
-      success: false,
-      debug: {
-        objective: testData.campaign.objective,
-        campaignName: testData.campaign.campaign_name,
-      }
-    }, { status: 400 });
+      success: true,
+      data: analysis,
+      cached: false,
+    });
 
   } catch (error) {
     console.error('[AI MEDIA BUYER FATAL ERROR]:', error);

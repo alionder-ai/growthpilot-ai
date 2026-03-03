@@ -45,16 +45,23 @@ export async function collectCampaignData(
   let detectedObjective = rawObjective;
 
   if (!detectedObjective) {
-    const name = campaign.campaign_name.toUpperCase();
-    if (name.includes('ETKİLEŞİM') || name.includes('ENGAGEMENT')) {
+    const name = campaign.campaign_name.toUpperCase()
+      .replace('İ', 'I')
+      .replace('Ş', 'S')
+      .replace('Ğ', 'G')
+      .replace('Ü', 'U')
+      .replace('Ö', 'O')
+      .replace('Ç', 'C');
+    
+    if (name.includes('ETKILESIM') || name.includes('ENGAGEMENT')) {
       detectedObjective = 'ENGAGEMENT';
     } else if (name.includes('MESAJ') || name.includes('MESSAGE')) {
       detectedObjective = 'MESSAGES';
-    } else if (name.includes('TRAFİK') || name.includes('TRAFFIC')) {
+    } else if (name.includes('TRAFIK') || name.includes('TRAFFIC')) {
       detectedObjective = 'TRAFFIC';
     } else if (name.includes('LEAD')) {
       detectedObjective = 'LEAD_GENERATION';
-    } else if (name.includes('SATIŞ') || name.includes('SALES') || name.includes('DÖNÜŞÜM') || name.includes('CONVERSION')) {
+    } else if (name.includes('SATIS') || name.includes('SALES') || name.includes('DONUSUM') || name.includes('CONVERSION')) {
       detectedObjective = 'CONVERSIONS';
     }
     // If still empty, leave it empty (will default to CONVERSIONS in calculator)
