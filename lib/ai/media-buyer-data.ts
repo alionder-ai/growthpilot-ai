@@ -58,6 +58,9 @@ export async function collectCampaignData(
     // If still empty, leave it empty (will default to CONVERSIONS in calculator)
   }
 
+  // Log detected objective for debugging
+  console.log('[MEDIA BUYER] Detected objective:', detectedObjective, 'for campaign:', campaign.campaign_name);
+
   // Get client separately (no join)
   const { data: clientData, error: clientError } = await supabase
     .from('clients')
