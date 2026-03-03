@@ -71,13 +71,13 @@ export function RecommendationsList({ recommendations }: RecommendationsListProp
         {sortedRecommendations.map((rec, index) => (
           <div
             key={index}
-            className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
+            className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
           >
-            <span className="text-xl flex-shrink-0">
+            <span className="text-2xl flex-shrink-0 mt-1">
               {getImpactIcon(rec.impact)}
             </span>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-2">
                 <span
                   className={`text-xs font-semibold px-2 py-0.5 rounded border ${getImpactColor(
                     rec.impact
@@ -86,7 +86,8 @@ export function RecommendationsList({ recommendations }: RecommendationsListProp
                   {getImpactLabel(rec.impact)}
                 </span>
               </div>
-              <p className="text-sm text-gray-700">{rec.action}</p>
+              <p className="text-sm font-semibold text-gray-900 mb-2">{rec.action}</p>
+              <p className="text-sm text-gray-600 leading-relaxed">{rec.explanation}</p>
             </div>
           </div>
         ))}

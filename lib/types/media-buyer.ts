@@ -37,6 +37,7 @@ export interface Issue {
 export interface Recommendation {
   impact: 'high' | 'medium' | 'low';
   action: string;
+  explanation: string;
 }
 
 export interface ProfitSimulation {
@@ -135,15 +136,16 @@ export interface DecisionResult {
   clientJustification?: string;
 }
 
+export interface KPIOverviewItem {
+  name: string;
+  value: string;
+  status: 'good' | 'warning' | 'bad';
+  benchmark: string;
+}
+
 export interface AIAnalysisResult {
   summary: string;
-  kpiOverview: {
-    ctr: string;
-    cvr: string;
-    roas: string;
-    cpa: string;
-    frequency: string;
-  };
+  kpiOverview: KPIOverviewItem[];
   issues: Issue[];
   recommendations: Recommendation[];
   nextTests: string[];

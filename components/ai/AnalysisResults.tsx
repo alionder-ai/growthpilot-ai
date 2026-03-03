@@ -76,12 +76,39 @@ export function AnalysisResults({ analysis, onCopyJustification }: AnalysisResul
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-4">KPI Değerlendirmesi</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Object.entries(analysis.kpiOverview).map(([key, value]) => (
-            <div key={key} className="bg-gray-50 p-4 rounded-lg">
-              <div className="text-xs text-gray-600 uppercase mb-1">{key}</div>
-              <p className="text-sm text-gray-800">{value}</p>
-            </div>
-          ))}
+          {analysis.kpiOverview.map((kpi, index) => {
+            const statusColors = {
+              good: 'bg-green-50 border-green-200',
+              warning: 'bg-yellow-50 border-yellow-200',
+              bad: 'bg-red-50 border-red-200',
+            };
+            const statusIcons = {
+              good: '✓',
+              warning: '⚠',
+              bad: '✗',
+            };
+            const statusTextColors = {
+              good: 'text-green-700',
+              warning: 'text-yellow-700',
+              bad: 'text-red-700',
+            };
+
+            return (
+              <div
+                key={index}
+                className={`p-4 rounded-lg border ${statusColors[kpi.status]}`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm font-semibold text-gray-900">{kpi.name}</div>
+                  <span className={`text-lg ${statusTextColors[kpi.status]}`}>
+                    {statusIcons[kpi.status]}
+                  </span>
+                </div>
+                <div className="text-2xl font-bold text-gray-900 mb-1">{kpi.value}</div>
+                <p className="text-xs text-gray-600">{kpi.benchmark}</p>
+              </div>
+            );
+          })}
         </div>
       </Card>
 

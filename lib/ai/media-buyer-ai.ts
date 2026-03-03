@@ -119,9 +119,21 @@ function validateAIResponse(result: any): asserts result is AIAnalysisResult {
     throw new Error('Missing or invalid summary in AI response');
   }
 
-  if (!result.kpiOverview || typeof result.kpiOverview !== 'object') {
+  // kpiOverview should be an array of KPI objects
+  if (!Array.isArray(result.kpiOverview)) {
     throw new Error('Missing or invalid kpiOverview in AI response');
   }
+
+  // Validate each KPI in kpiOverview
+  result.kpiOverview.forEach((kpi: any, index: number) => {
+    if (!kpi.name || !kpi.value || !kpi.status || !kpi.benchmark) {
+      throw new Error(`Invalid KPI structure at index ${index}`);
+    }
+    const validStatuses = ['good', 'warning', 'bad'];
+    if (!validStatuses.includes(kpi.status)) {
+      throw new Error(`Invalid status at KPI ${index}: ${kpi.status}`);
+    }
+  });
 
   if (!Array.isArray(result.issues)) {
     throw new Error('Missing or invalid issues array in AI response');
@@ -138,14 +150,20 @@ function validateAIResponse(result: any): asserts result is AIAnalysisResult {
   // Validate issue severity values
   const validSeverities = ['critical', 'high', 'medium', 'low'];
   result.issues.forEach((issue: any, index: number) => {
+    if (!issue.description || !issue.severity) {
+      throw new Error(`Invalid issue structure at index ${index}`);
+    }
     if (!validSeverities.includes(issue.severity)) {
       throw new Error(`Invalid severity at issue ${index}: ${issue.severity}`);
     }
   });
 
-  // Validate recommendation impact values
+  // Validate recommendation structure
   const validImpacts = ['high', 'medium', 'low'];
   result.recommendations.forEach((rec: any, index: number) => {
+    if (!rec.action || !rec.explanation || !rec.impact) {
+      throw new Error(`Invalid recommendation structure at index ${index}`);
+    }
     if (!validImpacts.includes(rec.impact)) {
       throw new Error(`Invalid impact at recommendation ${index}: ${rec.impact}`);
     }
